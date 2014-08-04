@@ -23,7 +23,7 @@
   </properties>
 
   <modules>
-   <!-- <module>fcrepo-client</module> -->
+    <module>fcrepo-client</module>
    <!-- <module>fcrepo-client-impl</module> -->
   </modules>
 
