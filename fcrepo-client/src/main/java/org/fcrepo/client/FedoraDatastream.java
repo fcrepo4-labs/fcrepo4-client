@@ -68,11 +68,7 @@ public interface FedoraDatastream extends FedoraResource {
 
     /**
      * Replace the content of this Datastream.
-     * @param content New datastream content.
-     * @param contentType Content type (MIME type) of the new content.
-     * @param filename Filename of the new content.
-     * @param checksum Checksum of the new content.
+     * @param content Updated content of the datastream.
     **/
-    public void updateContent( InputStream content, String contentType, String filename, URI checksum )
-            throws ReadOnlyException;
+    public void updateContent( FedoraContent content ) throws ReadOnlyException;
 }
