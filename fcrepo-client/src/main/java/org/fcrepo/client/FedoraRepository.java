@@ -17,7 +17,6 @@
 package org.fcrepo.client;
 
 import java.io.InputStream;
-import java.net.URI;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -51,16 +50,9 @@ public interface FedoraRepository {
     /**
      * Create a new Datastream.
      * @param path The path of the new datastream.
-     * @param content The datastream content as an InputStream.
-     * @param contentType The content type (MIME type) of the new datastream content.
-     * @param filename The filename of the new datastream content.
-     * @param checksum The checksum of the new datastream content.
+     * @param content Content of the new datastream.
     **/
-    public FedoraDatastream createDatastream(String path,
-                                             InputStream content,
-                                             String contentType,
-                                             String filename,
-                                             URI checksum) throws ReadOnlyException;
+    public FedoraDatastream createDatastream( String path, FedoraContent content ) throws ReadOnlyException;
 
     /**
      * Create a new Object.
