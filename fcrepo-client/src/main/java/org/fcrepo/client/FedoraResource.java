@@ -34,70 +34,70 @@ public interface FedoraResource {
      * Copy this Resource to a new path.
      * @param destination The path of the new copy.
     **/
-    public void copy( String destination ) throws ReadOnlyException;
+    public void copy( String destination ) throws FedoraException;
 
     /**
      * Remove this Resource.
     **/
-    public void delete() throws ReadOnlyException;
+    public void delete() throws FedoraException;
 
     /**
      * Get the creation date of this Resource.
     **/
-    public Date getCreatedDate();
+    public Date getCreatedDate() throws FedoraException;
 
     /**
      * Get the ETag of this Resource.
     **/
-    public String getEtagValue();
+    public String getEtagValue() throws FedoraException;
 
     /**
      * Get the modification date of this Resource.
     **/
-    public Date getLastModifiedDate();
+    public Date getLastModifiedDate() throws FedoraException;
 
     /**
      * Get the mixins assigned to this Resource.
     **/
-    public Collection<String> getMixins();
+    public Collection<String> getMixins() throws FedoraException;
 
     /**
      * Get the name of this Resource.
     **/
-    public String getName();
+    public String getName() throws FedoraException;
 
     /**
      * Get the full path of the Resource, relative to the repository root.
     **/
-    public String getPath();
+    public String getPath() throws FedoraException;
 
     /**
      * Get the RDF properties of this Resource.
     **/
-    public Iterator<Triple> getProperties();
+    public Iterator<Triple> getProperties() throws FedoraException;
 
     /**
      * Get the size of this Resource in bytes.
     **/
-    public Long getSize();
+    public Long getSize() throws FedoraException;
 
     /**
      * Move this Resource to a new path.
      * @param destination The path of the new copy.
     **/
-    public void move( String destination ) throws ReadOnlyException;
+    public void move( String destination ) throws FedoraException;
 
     /**
      * Update the properties of this Resource using SPARQL Update.
      * @param sparqlUpdate SPARQL Update command.
     **/
-    public void updateProperties( String sparqlUpdate ) throws ReadOnlyException;
+    public void updateProperties( String sparqlUpdate ) throws FedoraException;
 
     /**
      * Update the properties of this Resource with the provided RDF.
      * @param updatedProperties RDF properties as an InputStream.
     **/
-    public void updateProperties( InputStream updatedProperties ) throws ReadOnlyException;
+    public void updateProperties( InputStream updatedProperties ) throws FedoraException;
 
     /**
      * Check whether this Resource is writable.

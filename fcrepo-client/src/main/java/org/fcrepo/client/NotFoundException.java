@@ -17,24 +17,42 @@
 package org.fcrepo.client;
 
 /**
- * Exception thrown when a fixity check fails.
+ * Fedora exception indicating the requested resource was not found in the
+ * repository.
  * @author escowles
- * @since 2014-08-01
+ * @since 2014-08-12
 **/
-public class FixityException extends FedoraException {
+public class NotFoundException extends FedoraException {
 
     /**
      * Default constructor.
     **/
-    public FixityException() {
+    public NotFoundException() {
         super();
     }
 
     /**
      * Constructor with reason.
-     * @param message Details of the fixity exception.
+     * @param message Exception message.
     **/
-    public FixityException( final String message ) {
+    public NotFoundException( final String message ) {
         super( message );
+    }
+
+    /**
+     * Constructor with reason and cause.
+     * @param message Exception message.
+     * @param cause Exception cause.
+    **/
+    public NotFoundException( final String message, final Throwable cause ) {
+        super( message, cause );
+    }
+
+    /**
+     * Constructor with cause.
+     * @param cause Exception cause.
+    **/
+    public NotFoundException( final Throwable cause ) {
+        super( cause );
     }
 }
