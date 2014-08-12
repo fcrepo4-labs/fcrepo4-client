@@ -29,46 +29,46 @@ public interface FedoraDatastream extends FedoraResource {
     /**
      * Check the size and checksum of the datastream content.
     **/
-    public void checkFixity() throws FixityException;
+    public void checkFixity() throws FedoraException;
 
     /**
      * Get the datastream content as an InputStream.
     **/
-    public InputStream getContent();
+    public InputStream getContent() throws FedoraException;
 
     /**
      * Get the checksum of the datastream content.
     **/
-    public URI getContentDigest();
+    public URI getContentDigest() throws FedoraException;
 
     /**
      * Get the size of the datastream content in bytes.
     **/
-    public Long getContentSize();
+    public Long getContentSize() throws FedoraException;
 
     /**
      * Get the datastream filename.
     **/
-    public String getFilename();
+    public String getFilename() throws FedoraException;
 
     /**
      * Get the datastream content type (MIME type).
     **/
-    public String getContentType();
+    public String getContentType() throws FedoraException;
 
     /**
      * Get the Object that contains this Datastream.
     **/
-    public FedoraObject getObject();
+    public FedoraObject getObject() throws FedoraException;
 
     /**
      * Check whether this Datastream has content.
     **/
-    public boolean hasContent();
+    public boolean hasContent() throws FedoraException;
 
     /**
      * Replace the content of this Datastream.
      * @param content Updated content of the datastream.
     **/
-    public void updateContent( FedoraContent content ) throws ReadOnlyException;
+    public void updateContent( FedoraContent content ) throws FedoraException;
 }

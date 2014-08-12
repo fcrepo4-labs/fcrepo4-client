@@ -29,5 +29,5 @@ public interface FedoraObject extends FedoraResource {
      * Get the Object and Datastream nodes that are children of the current Object.
      * @param mixin If not null, limit to results that have this mixin.
     **/
-    public Collection<FedoraResource> getChildren( String mixin );
+    public Collection<FedoraResource> getChildren( String mixin ) throws FedoraException;
 }

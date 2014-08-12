@@ -22,7 +22,7 @@ package org.fcrepo.client;
  * @author escowles
  * @since 2014-08-01
 **/
-public class ReadOnlyException extends Exception {
+public class ReadOnlyException extends FedoraException {
 
     /**
      * Default constructor.
