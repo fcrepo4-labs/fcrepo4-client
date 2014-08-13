@@ -30,6 +30,11 @@ import com.hp.hpl.jena.graph.Triple;
 public interface FedoraRepository {
 
     /**
+     * Get the base URL for the repository.
+    **/
+    public String getRepositoryUrl();
+
+    /**
      * Check whether a path is an existing resource.
      * @param path The resource path.
     **/

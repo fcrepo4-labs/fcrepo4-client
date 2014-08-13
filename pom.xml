@@ -37,7 +37,7 @@
 
   <modules>
     <module>fcrepo-client</module>
-   <!-- <module>fcrepo-client-impl</module> -->
+    <module>fcrepo-client-impl</module>
   </modules>
 
   <scm>
