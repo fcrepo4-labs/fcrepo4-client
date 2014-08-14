@@ -13,6 +13,19 @@
   <description>Fedora Commons 4 Java Client</description>
   <packaging>pom</packaging>
 
+  <repositories>
+    <repository>
+      <id>snapshots-repo</id>
+      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
   <properties>
     <project_name>fcrepo4-client</project_name>
     <httpcomponents.version>4.3.2</httpcomponents.version>
