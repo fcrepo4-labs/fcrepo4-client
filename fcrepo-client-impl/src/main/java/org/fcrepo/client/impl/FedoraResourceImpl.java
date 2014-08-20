@@ -64,7 +64,9 @@ public class FedoraResourceImpl implements FedoraResource {
     /**
      * FedoraResourceImpl constructor
      *
-     * @param response
+     * @param repository FedoraRepository that created this resource
+     * @param path Repository path of this resource
+     * @param triples Properties of this resource
      * @throws IOException
      * @throws IllegalStateException
      */
@@ -169,9 +171,9 @@ public class FedoraResourceImpl implements FedoraResource {
     }
 
     /**
-     * get the graph consume.
+     * Get the properties graph
      *
-     * @return
+     * @return Graph containing properties for this resource
      */
     public Graph getGraph() {
         return graph;
@@ -197,8 +199,8 @@ public class FedoraResourceImpl implements FedoraResource {
     /**
      * Return all the values of a property
      *
-     * @param property
-     * @return
+     * @param property The Property to get values for
+     * @return Collection of values
      */
     protected Collection<String> getPropertyValues(final Property property) {
         final ExtendedIterator<Triple> iterator = graph.find(Node.ANY,

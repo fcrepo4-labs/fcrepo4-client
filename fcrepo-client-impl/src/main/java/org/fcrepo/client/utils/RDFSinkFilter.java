@@ -62,9 +62,9 @@ public class RDFSinkFilter extends StreamRDFBase {
 
     /**
      * Filter the triples
-     * @param triples
-     * @param properties
-     * @return
+     * @param triples Iterator of triples
+     * @param properties Properties to include
+     * @return Graph containing the fitlered triples
      */
     public static Graph filterTriples (
             final Iterator<Triple> triples,
