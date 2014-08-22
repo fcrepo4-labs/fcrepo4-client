@@ -30,20 +30,25 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.NotFoundException;
 
-import static javax.ws.rs.core.Response.Status.OK;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static javax.ws.rs.core.Response.Status.CONFLICT;
+import static javax.ws.rs.core.Response.Status.CREATED;
 import static javax.ws.rs.core.Response.Status.FORBIDDEN;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static javax.ws.rs.core.Response.Status.OK;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
@@ -87,9 +92,9 @@ public class FedoraRepositoryImpl implements FedoraRepository {
     /**
      * Constructor
      *
-     * @param repoUrl
-     * @param userName
-     * @param password
+     * @param repositoryURL Repository baseURL
+     * @param username Repository username
+     * @param password Repository password
      */
     public FedoraRepositoryImpl(final String repositoryURL,
                                 final String username,
@@ -101,7 +106,8 @@ public class FedoraRepositoryImpl implements FedoraRepository {
     /**
      * Constructor that takes the pre-configured HttpClient
      *
-     * @param repoUrl
+     * @param repositoryURL Repository baseURL
+     * @param httpClient Pre-configured httpClient
      */
     public FedoraRepositoryImpl(final String repositoryURL, final HttpClient httpClient) {
         this.repositoryURL = repositoryURL;
@@ -135,9 +141,31 @@ public class FedoraRepositoryImpl implements FedoraRepository {
     }
 
     @Override
-    public boolean exists(final String path) {
-        // TODO Auto-generated method stub
-        return false;
+    public boolean exists(final String path) throws FedoraException, ForbiddenException {
+        final HttpHead head = new HttpHead(repositoryURL + path);
+        try {
+            final HttpResponse response = httpClient.execute(head);
+            final StatusLine status = response.getStatusLine();
+            final String uri = head.getURI().toString();
+            if (status.getStatusCode() == OK.getStatusCode()) {
+                return true;
+            } else if (status.getStatusCode() == NOT_FOUND.getStatusCode()) {
+                return false;
+            } else if (status.getStatusCode() == FORBIDDEN.getStatusCode()) {
+                LOGGER.error("request for resource {} is not authorized.", uri);
+                throw new ForbiddenException("request for resource " + uri + " is not authorized.");
+            } else {
+                LOGGER.error("error checking resource {}: {} {}",
+                             new Object[]{ uri, status.getStatusCode(), status.getReasonPhrase()});
+                throw new FedoraException("error checking resource " + uri + ": " + status.getStatusCode() + " " +
+                                          status.getReasonPhrase());
+            }
+        } catch (final Exception e) {
+            LOGGER.error("could not encode URI parameter", e);
+            throw new FedoraException(e);
+        } finally {
+            head.releaseConnection();
+        }
     }
 
     @Override
@@ -147,7 +175,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
     }
 
     @Override
-    public FedoraObject getObject(final String path) throws FedoraException {
+    public FedoraObject getObject(final String path) throws FedoraException, ForbiddenException {
         final HttpGet get = createGetMethod(path, null);
 
         try {
@@ -213,9 +241,33 @@ public class FedoraRepositoryImpl implements FedoraRepository {
     }
 
     @Override
-    public FedoraObject createObject(final String path) throws ReadOnlyException {
-        // TODO Auto-generated method stub
-        return null;
+    public FedoraObject createObject(final String path) throws FedoraException {
+        final HttpPut put = createPutMethod(path, null);
+        try {
+            final HttpResponse response = httpClient.execute(put);
+            final String uri = put.getURI().toString();
+            final StatusLine status = response.getStatusLine();
+
+            if (status.getStatusCode() == CREATED.getStatusCode()) {
+                return getObject(path);
+            } else if (status.getStatusCode() == FORBIDDEN.getStatusCode()) {
+                LOGGER.error("request to create resource {} is not authorized.", uri);
+                throw new ForbiddenException("request to create resource " + uri + " is not authorized.");
+            } else if (status.getStatusCode() == CONFLICT.getStatusCode()) {
+                LOGGER.error("resource {} already exists", uri);
+                throw new FedoraException("resource " + uri + " already exists");
+            } else {
+                LOGGER.error("error creating resource {}: {} {}",
+                             new Object[]{uri, status.getStatusCode(), status.getReasonPhrase()});
+                throw new FedoraException("error retrieving resource " + uri + ": " +
+                                          status.getStatusCode() + " " + status.getReasonPhrase());
+            }
+        } catch (final Exception e) {
+            LOGGER.error("could not encode URI parameter", e);
+            throw new FedoraException(e);
+        } finally {
+            put.releaseConnection();
+        }
     }
 
     @Override
@@ -225,9 +277,12 @@ public class FedoraRepositoryImpl implements FedoraRepository {
     }
 
     @Override
-    public FedoraObject findOrCreateObject(final String path) throws ReadOnlyException {
-        // TODO Auto-generated method stub
-        return null;
+    public FedoraObject findOrCreateObject(final String path) throws FedoraException {
+        try {
+            return getObject(path);
+        } catch ( NotFoundException ex ) {
+            return createObject(path);
+        }
     }
 
     @Override
@@ -280,19 +335,31 @@ public class FedoraRepositoryImpl implements FedoraRepository {
 
     /**
      * Create GET method with list of parameters
-     *
-     * @param path
-     * @param params
-     * @return
-     * @throws UnsupportedEncodingException
-     */
+     * @param path Resource path, relative to repository baseURL
+     * @param params Query parameters
+     * @return GET method
+    **/
     protected HttpGet createGetMethod(final String path, final Map<String, List<String>> params) {
+        return new HttpGet(repositoryURL + path + queryString(params));
+    }
+
+    /**
+     * Create PUT method with list of parameters
+     * @param path Resource path, relative to repository baseURL
+     * @param params Query parameters
+     * @return PUT method
+    **/
+    protected HttpPut createPutMethod(final String path, final Map<String, List<String>> params) {
+        return new HttpPut(repositoryURL + path + queryString(params));
+    }
+
+    /**
+     * Encode URL parameters as a query string.
+     * @param params Query parameters
+    **/
+    protected String queryString( final Map<String, List<String>> params ) {
         final StringBuilder builder = new StringBuilder();
         if (params != null && params.size() > 0) {
-            return new HttpGet(repositoryURL + path);
-        }
-
-        if (params != null) {
             for (final Iterator<String> it = params.keySet().iterator(); it.hasNext(); ) {
                 final String key = it.next();
                 final List<String> values = params.get(key);
@@ -304,14 +371,14 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                     }
                 }
             }
+            return builder.length() > 0 ? "?" + builder.substring(0, builder.length() - 1) : "";
         }
-        final int paramsLen = builder.length();
-        final String paramsStr = paramsLen > 0 ? "?" + builder.substring(0, paramsLen - 1) : "";
-
-        return new HttpGet(repositoryURL + path + paramsStr);
+        return "";
     }
 
-    @Override
+    /**
+     * Get the repository baseURL.
+    **/
     public String getRepositoryUrl() {
         // TODO Auto-generated method stub
         return repositoryURL;
