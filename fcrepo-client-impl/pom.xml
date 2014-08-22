@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.fcrepo</groupId>
     <artifactId>fcrepo4-client</artifactId>
-    <version>4.0.0-beta-02-SNAPSHOT</version>
+    <version>4.0.0-beta-03-SNAPSHOT</version>
   </parent>
   <artifactId>fcrepo-client-impl</artifactId>
   <name>Fedora Repository Java Client API Impl</name>
