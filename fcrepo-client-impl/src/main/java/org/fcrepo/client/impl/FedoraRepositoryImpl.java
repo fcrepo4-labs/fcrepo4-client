@@ -146,18 +146,18 @@ public class FedoraRepositoryImpl implements FedoraRepository {
         try {
             final HttpResponse response = httpClient.execute(head);
             final StatusLine status = response.getStatusLine();
+            final int statusCode = status.getStatusCode();
             final String uri = head.getURI().toString();
-            if (status.getStatusCode() == OK.getStatusCode()) {
+            if (statusCode == OK.getStatusCode()) {
                 return true;
-            } else if (status.getStatusCode() == NOT_FOUND.getStatusCode()) {
+            } else if (statusCode == NOT_FOUND.getStatusCode()) {
                 return false;
-            } else if (status.getStatusCode() == FORBIDDEN.getStatusCode()) {
+            } else if (statusCode == FORBIDDEN.getStatusCode()) {
                 LOGGER.error("request for resource {} is not authorized.", uri);
                 throw new ForbiddenException("request for resource " + uri + " is not authorized.");
             } else {
-                LOGGER.error("error checking resource {}: {} {}",
-                             new Object[]{ uri, status.getStatusCode(), status.getReasonPhrase()});
-                throw new FedoraException("error checking resource " + uri + ": " + status.getStatusCode() + " " +
+                LOGGER.error("error checking resource {}: {} {}", uri, statusCode, status.getReasonPhrase());
+                throw new FedoraException("error checking resource " + uri + ": " + statusCode + " " +
                                           status.getReasonPhrase());
             }
         } catch (final Exception e) {
@@ -219,12 +219,11 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                 throw new NotFoundException("resource " + uri + " does not exist, cannot retrieve");
             } else {
                 LOGGER.error("error retrieving resource {}: {} {}",
-                             new Object[]{uri, response.getStatusLine().getStatusCode(),
-                                     response.getStatusLine().getReasonPhrase()});
-                throw new FedoraException("error retrieving resource " + uri + ": " +
-                                                  response.getStatusLine()
-                                                          .getStatusCode() + " " + response.getStatusLine()
-                        .getReasonPhrase());
+                             uri,
+                             statusCode,
+                             response.getStatusLine().getReasonPhrase());
+                throw new FedoraException("error retrieving resource " + uri + ": " + statusCode + " " +
+                                                  response.getStatusLine().getReasonPhrase());
             }
         } catch (final Exception e) {
             LOGGER.error("could not encode URI parameter", e);
@@ -247,20 +246,20 @@ public class FedoraRepositoryImpl implements FedoraRepository {
             final HttpResponse response = httpClient.execute(put);
             final String uri = put.getURI().toString();
             final StatusLine status = response.getStatusLine();
+            final int statusCode = status.getStatusCode();
 
-            if (status.getStatusCode() == CREATED.getStatusCode()) {
+            if (statusCode == CREATED.getStatusCode()) {
                 return getObject(path);
-            } else if (status.getStatusCode() == FORBIDDEN.getStatusCode()) {
+            } else if (statusCode == FORBIDDEN.getStatusCode()) {
                 LOGGER.error("request to create resource {} is not authorized.", uri);
                 throw new ForbiddenException("request to create resource " + uri + " is not authorized.");
-            } else if (status.getStatusCode() == CONFLICT.getStatusCode()) {
+            } else if (statusCode == CONFLICT.getStatusCode()) {
                 LOGGER.error("resource {} already exists", uri);
                 throw new FedoraException("resource " + uri + " already exists");
             } else {
-                LOGGER.error("error creating resource {}: {} {}",
-                             new Object[]{uri, status.getStatusCode(), status.getReasonPhrase()});
-                throw new FedoraException("error retrieving resource " + uri + ": " +
-                                          status.getStatusCode() + " " + status.getReasonPhrase());
+                LOGGER.error("error creating resource {}: {} {}", uri, statusCode, status.getReasonPhrase());
+                throw new FedoraException("error retrieving resource " + uri + ": " + statusCode + " " +
+                                                  status.getReasonPhrase());
             }
         } catch (final Exception e) {
             LOGGER.error("could not encode URI parameter", e);
