@@ -328,8 +328,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
 
     @Override
     public boolean isWritable() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     /**

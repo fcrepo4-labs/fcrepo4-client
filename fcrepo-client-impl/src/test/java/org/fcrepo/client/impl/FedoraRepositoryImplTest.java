@@ -50,8 +50,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 /**
+ * Writable repository impl -- read and write operations should both work.
  *
  * @author lsitu
+ * @author escowles
  *
  */
 public class FedoraRepositoryImplTest {
@@ -73,7 +75,7 @@ public class FedoraRepositoryImplTest {
     @Mock
     private FedoraObjectImpl mockObject;
 
-    private String testRepositoryUrl = "http://localhost:8080/test/";
+    String testRepositoryUrl = "http://localhost:8080/test/";
 
     private final String testContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"" +
@@ -187,5 +189,11 @@ public class FedoraRepositoryImplTest {
 
         final FedoraObject object = spy.findOrCreateObject("/foo");
         assertEquals(mockObject, object);
+    }
+
+    @Test
+    public void testWritable() {
+        System.out.println("FedoraRepositoryImpl.isWritable(): " + fedoraRepository);
+        assertTrue( fedoraRepository.isWritable() );
     }
 }
