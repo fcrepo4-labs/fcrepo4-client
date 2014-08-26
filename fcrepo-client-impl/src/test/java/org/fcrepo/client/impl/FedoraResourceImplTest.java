@@ -15,6 +15,7 @@
  */
 package org.fcrepo.client.impl;
 
+import static com.hp.hpl.jena.graph.Factory.createDefaultGraph;
 import static com.hp.hpl.jena.graph.NodeFactory.createURI;
 import static com.hp.hpl.jena.graph.Triple.create;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -22,20 +23,21 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Iterator;
 
 import org.fcrepo.client.FedoraException;
-import org.fcrepo.client.FedoraResource;
+import org.fcrepo.client.FedoraRepository;
+import org.fcrepo.client.utils.HttpHelper;
 import org.fcrepo.kernel.RdfLexicon;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import com.hp.hpl.jena.graph.Triple;
+import com.hp.hpl.jena.graph.Graph;
 import com.hp.hpl.jena.rdf.model.ResourceFactory;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
 /**
  *
  * @author lsitu
@@ -44,14 +46,14 @@ import static org.junit.Assert.assertNotNull;
 public class FedoraResourceImplTest {
 
     @Mock
-    FedoraRepositoryImpl mockRepository;
+    FedoraRepository mockRepository;
 
     @Mock
-    private Iterator<Triple> mockTriples;
+    HttpHelper mockHelper;
 
-    private FedoraResource resource;
+    private FedoraResourceImpl resource;
 
-    private String path = "rest/test";
+    private String path = "/test";
 
     private boolean isWritable = true;
 
@@ -60,28 +62,25 @@ public class FedoraResourceImplTest {
 
     private String testDateValue = "2014-08-14T15:11:30.118Z";
     private String testMixinType = RdfLexicon.REPOSITORY_NAMESPACE + "test";
-    private final Triple testCreatDateTriple =
-            create(createURI(RdfLexicon.RESTAPI_NAMESPACE + "test"), RdfLexicon.CREATED_DATE.asNode(),
-                    ResourceFactory.createPlainLiteral(testDateValue).asNode());
-    private final Triple testLastModifiedDateTriple =
-            create(createURI(RdfLexicon.RESTAPI_NAMESPACE + "test"), RdfLexicon.LAST_MODIFIED_DATE.asNode(),
-                    ResourceFactory.createPlainLiteral(testDateValue).asNode());
-    private final Triple testMixinTriple =
-            create(createURI(RdfLexicon.RESTAPI_NAMESPACE + "test"),
-                    RdfLexicon.HAS_MIXIN_TYPE.asNode(), createURI(testMixinType));
-    private final Triple testIsWritable =
-            create(createURI(RdfLexicon.RESTAPI_NAMESPACE + "test"),
-                    RdfLexicon.WRITABLE.asNode(),
-                    ResourceFactory.createTypedLiteral(new Boolean(isWritable)).asNode());
+    private final String repositoryURL = "http://localhost:8080/rest";
 
     @Before
     public void setUp() throws IOException {
         initMocks(this);
-        when(mockTriples.hasNext()).thenReturn(true, true, true, true, false);
-        when(mockTriples.next()).thenReturn(testCreatDateTriple, testLastModifiedDateTriple,
-                testMixinTriple, testIsWritable);
-        resource = new FedoraResourceImpl (mockRepository, path, mockTriples);
+        when(mockRepository.getRepositoryUrl()).thenReturn(repositoryURL);
+        resource = new FedoraResourceImpl(mockRepository, mockHelper, path);
         assertTrue(resource != null);
+
+        final Graph graph = createDefaultGraph();
+        graph.add( create(createURI(repositoryURL + "/test"), RdfLexicon.CREATED_DATE.asNode(),
+                          ResourceFactory.createPlainLiteral(testDateValue).asNode()) );
+        graph.add( create(createURI(repositoryURL + "/test"), RdfLexicon.LAST_MODIFIED_DATE.asNode(),
+                          ResourceFactory.createPlainLiteral(testDateValue).asNode()) );
+        graph.add( create(createURI(repositoryURL + "/test"), RdfLexicon.HAS_MIXIN_TYPE.asNode(),
+                          createURI(testMixinType)) );
+        graph.add( create(createURI(repositoryURL + "/test"), RdfLexicon.WRITABLE.asNode(),
+                          ResourceFactory.createTypedLiteral(new Boolean(isWritable)).asNode()) );
+        resource.setGraph( graph );
     }
 
     @Test

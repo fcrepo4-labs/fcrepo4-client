@@ -16,15 +16,13 @@
 
 package org.fcrepo.client.impl;
 
-import java.io.IOException;
 import java.util.Collection;
-import java.util.Iterator;
 
 import org.apache.jena.atlas.lib.NotImplemented;
 import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
-import com.hp.hpl.jena.graph.Triple;
+import org.fcrepo.client.utils.HttpHelper;
 
 /**
  * A Fedora Object Impl.
@@ -37,16 +35,12 @@ public class FedoraObjectImpl extends FedoraResourceImpl implements FedoraObject
     /**
      * Constructor for FedoraObjectImpl
      *
-     * @param repository
-     * @param path
-     * @param triples
-     * @throws IllegalStateException
-     * @throws IOException
+     * @param repository FedoraRepository that created this object
+     * @param httpHelper HTTP helper for making repository requests
+     * @param path Repository path
      */
-    public FedoraObjectImpl(final FedoraRepository repository,
-                            final String path,
-                            final Iterator<Triple> triples) throws IllegalStateException, IOException {
-        super(repository, path, triples);
+    public FedoraObjectImpl(final FedoraRepository repository, final HttpHelper httpHelper, final String path) {
+        super(repository, httpHelper, path);
     }
 
     /**

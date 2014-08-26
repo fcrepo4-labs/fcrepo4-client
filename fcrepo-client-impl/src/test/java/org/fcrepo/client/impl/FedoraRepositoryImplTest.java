@@ -15,15 +15,19 @@
  */
 package org.fcrepo.client.impl;
 
+import static com.hp.hpl.jena.graph.NodeFactory.createLiteral;
+import static com.hp.hpl.jena.graph.NodeFactory.createURI;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.apache.http.HttpStatus.SC_OK;
+import static org.fcrepo.kernel.RdfLexicon.HAS_PRIMARY_IDENTIFIER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -34,17 +38,22 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 
 import javax.ws.rs.NotFoundException;
 
+import com.hp.hpl.jena.graph.Graph;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.HttpPut;
+import org.fcrepo.client.FedoraContent;
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraObject;
+import org.fcrepo.client.utils.HttpHelper;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -59,6 +68,7 @@ import org.mockito.Mock;
 public class FedoraRepositoryImplTest {
 
     FedoraRepositoryImpl fedoraRepository;
+    HttpHelper httpHelper;
 
     @Mock
     HttpClient mockClient;
@@ -75,7 +85,7 @@ public class FedoraRepositoryImplTest {
     @Mock
     private FedoraObjectImpl mockObject;
 
-    String testRepositoryUrl = "http://localhost:8080/test/";
+    String testRepositoryUrl = "http://localhost:8080/rest";
 
     private final String testContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"" +
@@ -92,6 +102,7 @@ public class FedoraRepositoryImplTest {
     public void setUp() throws IOException {
         initMocks(this);
         fedoraRepository = new FedoraRepositoryImpl (testRepositoryUrl, mockClient);
+        httpHelper = new HttpHelper( testRepositoryUrl, mockClient, false );
     }
 
     @Test
@@ -193,7 +204,55 @@ public class FedoraRepositoryImplTest {
 
     @Test
     public void testWritable() {
-        System.out.println("FedoraRepositoryImpl.isWritable(): " + fedoraRepository);
         assertTrue( fedoraRepository.isWritable() );
+    }
+
+    @Test
+    public void testUpdateProperties() throws Exception {
+        final String path = "/testObject";
+        final String etag = "urn:sha1:e242ed3bffccdf271b7fbaf34ed72d089537b42f";
+        final URI uri = new URI( testRepositoryUrl + path );
+        final HttpResponse response = mock(HttpResponse.class);
+        final StatusLine status = mock(StatusLine.class);
+        final FedoraObjectImpl object = new FedoraObjectImpl( fedoraRepository, httpHelper, path );
+        final Header etagHeader = mock(Header.class);
+        final Header[] etagArray = new Header[]{ etagHeader };
+        final Header typeHeader = mock(Header.class);
+        final HttpEntity entity = mock(HttpEntity.class);
+
+        when(mockClient.execute(any(HttpUriRequest.class))).thenReturn(response);
+        when(response.getStatusLine()).thenReturn(status);
+        when(status.getStatusCode()).thenReturn(200);
+        when(response.getHeaders(eq("ETag"))).thenReturn(etagArray);
+        when(response.getEntity()).thenReturn(entity);
+        when(entity.getContentType()).thenReturn(typeHeader);
+        when(etagHeader.getValue()).thenReturn(etag);
+        when(typeHeader.getValue()).thenReturn("application/rdf+xml");
+        when(entity.getContent()).thenReturn(new ByteArrayInputStream(testContent.getBytes()));
+
+        httpHelper.loadProperties( object );
+        final Graph g = object.getGraph();
+        assertNotNull(g);
+        assertTrue( g.contains( createURI(uri.toString()), HAS_PRIMARY_IDENTIFIER.asNode(),
+            createLiteral("2fb9c440-db63-434f-929b-0ff29253205c")) );
+    }
+
+    @Test
+    public void testCreateContentPutMethod() throws Exception {
+        final String path = "/test";
+        final InputStream in = new ByteArrayInputStream( "foo".getBytes() );
+        final String mime = "image/jpeg";
+        final String fn = "image.jpg";
+        final String chk = "urn:sha1:c6bbf022f8f19d09106622aa912218417723f543";
+        final URI checksumURI = new URI(chk);
+        final FedoraContent cont = new FedoraContent().setContent(in).setContentType(mime)
+                                                      .setFilename(fn).setChecksum(checksumURI);
+
+        final HttpPut put = httpHelper.createContentPutMethod(path, null, cont);
+
+        assertEquals( testRepositoryUrl + path + "/fcr:content?checksum=" + chk, put.getURI().toString() );
+        assertEquals( in, put.getEntity().getContent() );
+        assertEquals( mime, put.getFirstHeader("Content-Type").getValue() );
+        assertEquals( "attachment; filename=\"" + fn + "\"", put.getFirstHeader("Content-Disposition").getValue() );
     }
 }

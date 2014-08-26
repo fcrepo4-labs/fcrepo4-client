@@ -29,6 +29,7 @@ import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.ReadOnlyException;
+import org.fcrepo.client.utils.HttpHelper;
 import org.slf4j.Logger;
 
 /**
@@ -44,21 +45,23 @@ public class ReadOnlyFedoraRepositoryImpl extends FedoraRepositoryImpl implement
     /**
      * Constructor that takes the repository url
      *
-     * @param repoUrl
+     * @param repositoryURL Fedora base URL.
      */
-    public ReadOnlyFedoraRepositoryImpl(final String repoUrl) {
-        super(repoUrl);
+    public ReadOnlyFedoraRepositoryImpl(final String repositoryURL) {
+        this.repositoryURL = repositoryURL;
+        this.httpHelper = new HttpHelper(repositoryURL, null, null, true);
     }
 
     /**
      * Constructor that takes the repoistory url and username/password for connecting
      *
-     * @param repositoryURL Repository baseURL
+     * @param repositoryURL Repository base URL
      * @param username Repository username
      * @param password Repository password
      */
     public ReadOnlyFedoraRepositoryImpl(final String repositoryURL, final String username, final String password) {
-        super(repositoryURL, username, password);
+        this.repositoryURL = repositoryURL;
+        this.httpHelper = new HttpHelper(repositoryURL, username, password, true);
     }
 
     /**
@@ -68,7 +71,8 @@ public class ReadOnlyFedoraRepositoryImpl extends FedoraRepositoryImpl implement
      * @param httpClient Pre-configured httpClient
      */
     public ReadOnlyFedoraRepositoryImpl(final String repositoryURL, final HttpClient httpClient) {
-        super(repositoryURL, httpClient);
+        this.repositoryURL = repositoryURL;
+        this.httpHelper = new HttpHelper(repositoryURL, httpClient, true);
     }
 
     @Override
@@ -84,7 +88,7 @@ public class ReadOnlyFedoraRepositoryImpl extends FedoraRepositoryImpl implement
     }
 
     @Override
-    public FedoraDatastream findOrCreateDatastream(final String path) throws ReadOnlyException {
+    public FedoraDatastream findOrCreateDatastream(final String path) throws FedoraException {
         try {
             return getDatastream(path);
         } catch ( NotFoundException ex ) {

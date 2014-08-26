@@ -18,7 +18,6 @@ package org.fcrepo.client.impl;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -29,15 +28,18 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jena.atlas.lib.NotImplemented;
+
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
 import org.fcrepo.client.ReadOnlyException;
-import org.fcrepo.client.utils.RDFSinkFilter;
+import org.fcrepo.client.utils.HttpHelper;
 import org.fcrepo.kernel.RdfLexicon;
+
 import org.slf4j.Logger;
 
 import com.hp.hpl.jena.graph.Graph;
 import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.graph.NodeFactory;
 import com.hp.hpl.jena.graph.Triple;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
@@ -46,16 +48,21 @@ import com.hp.hpl.jena.util.iterator.ExtendedIterator;
  * A Fedora Object Impl.
  *
  * @author lsitu
+ * @author escowles
  * @since 2014-08-11
  */
 public class FedoraResourceImpl implements FedoraResource {
-    private static final Logger LOGGER = getLogger(FedoraRepositoryImpl.class);
+    private static final Logger LOGGER = getLogger(FedoraResourceImpl.class);
 
     private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
     protected FedoraRepository repository = null;
 
+    protected HttpHelper httpHelper = null;
+
     protected String path = null;
+
+    protected Node subject = null;
 
     protected Graph graph;
 
@@ -64,19 +71,15 @@ public class FedoraResourceImpl implements FedoraResource {
     /**
      * FedoraResourceImpl constructor
      *
-     * @param repository FedoraRepository that created this resource
+     * @param repository FedoraRepositoryImpl that created this resource
+     * @param httpHelper HTTP helper for making repository requests
      * @param path Repository path of this resource
-     * @param triples Properties of this resource
-     * @throws IOException
-     * @throws IllegalStateException
      */
-    public FedoraResourceImpl(final FedoraRepository repository,
-                              final String path,
-                              final Iterator<Triple> triples)
-            throws IllegalStateException, IOException {
+    public FedoraResourceImpl(final FedoraRepository repository, final HttpHelper httpHelper, final String path) {
         this.repository = repository;
+        this.httpHelper = httpHelper;
         this.path = path;
-        graph = RDFSinkFilter.filterTriples(triples, Node.ANY);
+        subject = NodeFactory.createURI(repository.getRepositoryUrl() + path);
     }
 
     @Override
@@ -179,18 +182,22 @@ public class FedoraResourceImpl implements FedoraResource {
         return graph;
     }
 
+    /**
+     * Update the properties graph
+    **/
+    public void setGraph( final Graph graph ) {
+        this.graph = graph;
+    }
+
     private Date getDate(final Property property) {
-        final ExtendedIterator<Triple> iterator = graph.find(Node.ANY,
-                                                             property.asNode(),
-                                                             Node.ANY);
         Date date = null;
-        if (iterator.hasNext()) {
-            final String dateValue = iterator.next()
-                    .getObject().getLiteralValue().toString();
+        final Triple t = getTriple(subject, property);
+        if ( t != null ) {
+            final String dateValue = t.getObject().getLiteralValue().toString();
             try {
                 date = dateFormat.parse(dateValue);
             } catch (final ParseException e) {
-                LOGGER.debug("Invalid date format errr: " + dateValue);
+                LOGGER.debug("Invalid date format error: " + dateValue);
             }
         }
         return date;
@@ -207,7 +214,7 @@ public class FedoraResourceImpl implements FedoraResource {
                                                              property.asNode(),
                                                              Node.ANY);
         final Set<String> set = new HashSet<>();
-        if (iterator.hasNext()) {
+        while (iterator.hasNext()) {
             final Node object = iterator.next().getObject();
             if (object.isLiteral()) {
                 set.add(object.getLiteralValue().toString());
@@ -219,4 +226,18 @@ public class FedoraResourceImpl implements FedoraResource {
         }
         return set;
     }
+
+    protected Triple getTriple( final Node subject, final Property property ) {
+        final ExtendedIterator<Triple> it = graph.find( subject, property.asNode(), null );
+        try {
+            if ( it.hasNext() ) {
+                return it.next();
+            } else {
+                return null;
+            }
+        } finally {
+            it.close();
+        }
+    }
+
 }
