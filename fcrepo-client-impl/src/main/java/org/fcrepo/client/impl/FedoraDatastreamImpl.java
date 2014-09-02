@@ -16,12 +16,12 @@
 
 package org.fcrepo.client.impl;
 
-import static javax.ws.rs.core.Response.Status.CONFLICT;
-import static javax.ws.rs.core.Response.Status.CREATED;
-import static javax.ws.rs.core.Response.Status.FORBIDDEN;
-import static javax.ws.rs.core.Response.Status.NO_CONTENT;
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static javax.ws.rs.core.Response.Status.OK;
+import static org.apache.http.HttpStatus.SC_CONFLICT;
+import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_NO_CONTENT;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+import static org.apache.http.HttpStatus.SC_OK;
 
 import static com.hp.hpl.jena.rdf.model.ResourceFactory.createProperty;
 
@@ -37,8 +37,8 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.NotFoundException;
+import org.fcrepo.client.ForbiddenException;
+import org.fcrepo.client.NotFoundException;
 
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.graph.NodeFactory;
@@ -155,16 +155,16 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
             final StatusLine status = response.getStatusLine();
             final String uri = put.getURI().toString();
 
-            if ( status.getStatusCode() == CREATED.getStatusCode()
-                    || status.getStatusCode() == NO_CONTENT.getStatusCode()) {
+            if ( status.getStatusCode() == SC_CREATED
+                    || status.getStatusCode() == SC_NO_CONTENT) {
                 LOGGER.debug("content updated successfully for resource {}", uri);
-            } else if ( status.getStatusCode() == FORBIDDEN.getStatusCode()) {
+            } else if ( status.getStatusCode() == SC_FORBIDDEN) {
                 LOGGER.error("request for resource {} is not authorized.", uri);
                 throw new ForbiddenException("request for resource " + uri + " is not authorized.");
-            } else if ( status.getStatusCode() == NOT_FOUND.getStatusCode()) {
+            } else if ( status.getStatusCode() == SC_NOT_FOUND) {
                 LOGGER.error("resource {} does not exist, cannot retrieve", uri);
                 throw new NotFoundException("resource " + uri + " does not exist, cannot retrieve");
-            } else if ( status.getStatusCode() == CONFLICT.getStatusCode()) {
+            } else if ( status.getStatusCode() == SC_CONFLICT) {
                 LOGGER.error("checksum mismatch for {}", uri);
                 throw new FedoraException("checksum mismatch for resource " + uri);
             } else {
@@ -196,12 +196,12 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
             final HttpResponse response = httpHelper.execute( get );
             final StatusLine status = response.getStatusLine();
 
-            if ( status.getStatusCode() == OK.getStatusCode()) {
+            if ( status.getStatusCode() == SC_OK) {
                 return response.getEntity().getContent();
-            } else if ( status.getStatusCode() == FORBIDDEN.getStatusCode()) {
+            } else if ( status.getStatusCode() == SC_FORBIDDEN) {
                 LOGGER.error("request for resource {} is not authorized.", uri);
                 throw new ForbiddenException("request for resource " + uri + " is not authorized.");
-            } else if ( status.getStatusCode() == NOT_FOUND.getStatusCode()) {
+            } else if ( status.getStatusCode() == SC_NOT_FOUND) {
                 LOGGER.error("resource {} does not exist, cannot retrieve", uri);
                 throw new NotFoundException("resource " + uri + " does not exist, cannot retrieve");
             } else {

@@ -23,7 +23,7 @@ import static org.mockito.Mockito.spy;
 
 import java.io.IOException;
 
-import javax.ws.rs.NotFoundException;
+import org.fcrepo.client.NotFoundException;
 
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.ReadOnlyException;

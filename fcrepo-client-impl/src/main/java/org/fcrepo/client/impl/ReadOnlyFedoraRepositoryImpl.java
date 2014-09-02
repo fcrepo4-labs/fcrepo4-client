@@ -19,7 +19,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.InputStream;
 
-import javax.ws.rs.NotFoundException;
+import org.fcrepo.client.NotFoundException;
 
 import org.apache.http.client.HttpClient;
 

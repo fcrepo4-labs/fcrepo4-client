@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 
-import javax.ws.rs.NotFoundException;
+import org.fcrepo.client.NotFoundException;
 
 import com.hp.hpl.jena.graph.Graph;
 import org.apache.http.Header;
