@@ -18,10 +18,10 @@ package org.fcrepo.client.utils;
 
 import static java.lang.Integer.MAX_VALUE;
 
-import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
-import static javax.ws.rs.core.Response.Status.FORBIDDEN;
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static javax.ws.rs.core.Response.Status.OK;
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+import static org.apache.http.HttpStatus.SC_OK;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -34,9 +34,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.NotFoundException;
+import org.fcrepo.client.BadRequestException;
+import org.fcrepo.client.ForbiddenException;
+import org.fcrepo.client.NotFoundException;
 
 import com.hp.hpl.jena.graph.Node;
 
@@ -258,7 +258,7 @@ public class HttpHelper {
             final String uri = get.getURI().toString();
             final StatusLine status = response.getStatusLine();
 
-            if (status.getStatusCode() == OK.getStatusCode()) {
+            if (status.getStatusCode() == SC_OK) {
                 LOGGER.debug("Updated properties for resource {}", uri);
 
                 // header processing
@@ -274,14 +274,14 @@ public class HttpHelper {
                 RiotReader.parse(entity.getContent(), lang, uri, streamTriples);
                 resource.setGraph( RDFSinkFilter.filterTriples(streamTriples.getCollected().iterator(), Node.ANY) );
                 return resource;
-            } else if (status.getStatusCode() == FORBIDDEN.getStatusCode()) {
+            } else if (status.getStatusCode() == SC_FORBIDDEN) {
                 LOGGER.error("request for resource {} is not authorized.", uri);
                 throw new ForbiddenException("request for resource " + uri + " is not authorized.");
-            } else if (status.getStatusCode() == BAD_REQUEST.getStatusCode()) {
+            } else if (status.getStatusCode() == SC_BAD_REQUEST) {
                 LOGGER.error("server does not support metadata type application/rdf+xml for resource {} " +
                                      " cannot retrieve", uri);
                 throw new BadRequestException("server does not support the request metadata type for resource " + uri);
-            } else if (status.getStatusCode() == NOT_FOUND.getStatusCode()) {
+            } else if (status.getStatusCode() == SC_NOT_FOUND) {
                 LOGGER.error("resource {} does not exist, cannot retrieve", uri);
                 throw new NotFoundException("resource " + uri + " does not exist, cannot retrieve");
             } else {

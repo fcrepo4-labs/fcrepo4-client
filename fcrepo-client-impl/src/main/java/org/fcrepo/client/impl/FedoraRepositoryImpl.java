@@ -21,14 +21,14 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.NotFoundException;
+import org.fcrepo.client.ForbiddenException;
+import org.fcrepo.client.NotFoundException;
 
-import static javax.ws.rs.core.Response.Status.CONFLICT;
-import static javax.ws.rs.core.Response.Status.CREATED;
-import static javax.ws.rs.core.Response.Status.FORBIDDEN;
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static javax.ws.rs.core.Response.Status.OK;
+import static org.apache.http.HttpStatus.SC_CONFLICT;
+import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+import static org.apache.http.HttpStatus.SC_OK;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -103,11 +103,11 @@ public class FedoraRepositoryImpl implements FedoraRepository {
             final StatusLine status = response.getStatusLine();
             final int statusCode = status.getStatusCode();
             final String uri = head.getURI().toString();
-            if (statusCode == OK.getStatusCode()) {
+            if (statusCode == SC_OK) {
                 return true;
-            } else if (statusCode == NOT_FOUND.getStatusCode()) {
+            } else if (statusCode == SC_NOT_FOUND) {
                 return false;
-            } else if (statusCode == FORBIDDEN.getStatusCode()) {
+            } else if (statusCode == SC_FORBIDDEN) {
                 LOGGER.error("request for resource {} is not authorized.", uri);
                 throw new ForbiddenException("request for resource " + uri + " is not authorized.");
             } else {
@@ -142,12 +142,12 @@ public class FedoraRepositoryImpl implements FedoraRepository {
             final StatusLine status = response.getStatusLine();
             final int statusCode = status.getStatusCode();
 
-            if (statusCode == CREATED.getStatusCode()) {
+            if (statusCode == SC_CREATED) {
                 return getDatastream(path);
-            } else if (statusCode == FORBIDDEN.getStatusCode()) {
+            } else if (statusCode == SC_FORBIDDEN) {
                 LOGGER.error("request to create resource {} is not authorized.", uri);
                 throw new ForbiddenException("request to create resource " + uri + " is not authorized.");
-            } else if (statusCode == CONFLICT.getStatusCode()) {
+            } else if (statusCode == SC_CONFLICT) {
                 LOGGER.error("resource {} already exists", uri);
                 throw new FedoraException("resource " + uri + " already exists");
             } else {
@@ -172,12 +172,12 @@ public class FedoraRepositoryImpl implements FedoraRepository {
             final StatusLine status = response.getStatusLine();
             final int statusCode = status.getStatusCode();
 
-            if (statusCode == CREATED.getStatusCode()) {
+            if (statusCode == SC_CREATED) {
                 return getObject(path);
-            } else if (statusCode == FORBIDDEN.getStatusCode()) {
+            } else if (statusCode == SC_FORBIDDEN) {
                 LOGGER.error("request to create resource {} is not authorized.", uri);
                 throw new ForbiddenException("request to create resource " + uri + " is not authorized.");
-            } else if (statusCode == CONFLICT.getStatusCode()) {
+            } else if (statusCode == SC_CONFLICT) {
                 LOGGER.error("resource {} already exists", uri);
                 throw new FedoraException("resource " + uri + " already exists");
             } else {
