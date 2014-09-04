@@ -96,8 +96,11 @@ public interface FedoraResource {
     /**
      * Update the properties of this Resource with the provided RDF.
      * @param updatedProperties RDF properties as an InputStream.
+     * @param contentType Content type of the RDF in updatedProperties (e.g.,
+     *         "text/rdf+n3" or "application/rdf+xml").
     **/
-    public void updateProperties( InputStream updatedProperties ) throws FedoraException;
+    public void updateProperties( InputStream updatedProperties,
+                                  String contentType ) throws FedoraException;
 
     /**
      * Check whether this Resource is writable.

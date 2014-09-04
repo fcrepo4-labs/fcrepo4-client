@@ -23,10 +23,13 @@ import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.apache.http.HttpStatus.SC_OK;
 
+import static org.apache.jena.riot.WebContent.contentTypeSPARQLUpdate;
+
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -50,9 +53,11 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -192,6 +197,22 @@ public class HttpHelper {
     }
 
     /**
+     * Create a request to update triples with SPARQL Update.
+     * @param path The datastream path.
+     * @param sparqlUpdate SPARQL Update command.
+    **/
+    public HttpPatch createPatchMethod(final String path, final String sparqlUpdate) throws FedoraException {
+        if ( isBlank(sparqlUpdate) ) {
+            throw new FedoraException("SPARQL Update command must not be blank");
+        }
+
+        final HttpPatch patch = new HttpPatch(repositoryURL + path);
+        patch.setEntity( new ByteArrayEntity(sparqlUpdate.getBytes()) );
+        patch.setHeader("Content-Type", contentTypeSPARQLUpdate);
+        return patch;
+    }
+
+    /**
      * Create POST method with list of parameters
      * @param path Resource path, relative to repository baseURL
      * @param params Query parameters
@@ -240,6 +261,27 @@ public class HttpHelper {
             put.setHeader("Content-Type", content.getContentType() );
         }
 
+        return put;
+    }
+
+    /**
+     * Create a request to update triples.
+     * @param path The datastream path.
+     * @param updatedProperties InputStream containing RDF.
+     * @param contentType Content type of the RDF in updatedProperties (e.g., "text/rdf+n3" or
+     *        "application/rdf+xml").
+    **/
+    public HttpPut createTriplesPutMethod(final String path, final InputStream updatedProperties,
+                                          final String contentType) throws FedoraException {
+        if ( updatedProperties == null ) {
+            throw new FedoraException("updatedProperties must not be null");
+        } else if ( isBlank(contentType) ) {
+            throw new FedoraException("contentType must not be blank");
+        }
+
+        final HttpPut put = new HttpPut(repositoryURL + path);
+        put.setEntity( new InputStreamEntity(updatedProperties) );
+        put.setHeader("Content-Type", contentType);
         return put;
     }
 

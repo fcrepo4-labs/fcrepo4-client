@@ -18,11 +18,22 @@ package org.fcrepo.client.impl;
 import static com.hp.hpl.jena.graph.Factory.createDefaultGraph;
 import static com.hp.hpl.jena.graph.NodeFactory.createURI;
 import static com.hp.hpl.jena.graph.Triple.create;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPut;
 
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraRepository;
@@ -137,5 +148,36 @@ public class FedoraResourceImplTest {
     @Test
     public void TestGetGraph () {
         assertNotNull(((FedoraResourceImpl)resource).getGraph());
+    }
+
+    @Test
+    public void testUpdatePropertiesSPARQL() throws Exception {
+        final HttpResponse mockResponse = mock(HttpResponse.class);
+        final StatusLine mockStatus = mock(StatusLine.class);
+        final HttpPatch patch = new HttpPatch(repositoryURL);
+        when(mockHelper.execute(any(HttpPatch.class))).thenReturn(mockResponse);
+        when(mockResponse.getStatusLine()).thenReturn(mockStatus);
+        when(mockStatus.getStatusCode()).thenReturn(204);
+        when(mockHelper.createPatchMethod(anyString(), anyString())).thenReturn(patch);
+
+        resource.updateProperties("test sparql update");
+        verify(mockHelper).execute(patch);
+        verify(mockHelper).loadProperties(resource);
+    }
+
+    @Test
+    public void testUpdatePropertiesRDF() throws Exception {
+        final HttpResponse mockResponse = mock(HttpResponse.class);
+        final StatusLine mockStatus = mock(StatusLine.class);
+        final HttpPut put = new HttpPut(repositoryURL);
+        when(mockHelper.execute(any(HttpPatch.class))).thenReturn(mockResponse);
+        when(mockResponse.getStatusLine()).thenReturn(mockStatus);
+        when(mockStatus.getStatusCode()).thenReturn(204);
+        when(mockHelper.createTriplesPutMethod(anyString(), any(InputStream.class), anyString())).thenReturn(put);
+
+        final InputStream in = new ByteArrayInputStream("dummy rdf content".getBytes());
+        resource.updateProperties(in, "text/n3");
+        verify(mockHelper).execute(put);
+        verify(mockHelper).loadProperties(resource);
     }
 }

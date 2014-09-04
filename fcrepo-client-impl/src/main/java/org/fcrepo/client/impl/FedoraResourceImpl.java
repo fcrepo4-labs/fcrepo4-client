@@ -16,6 +16,11 @@
 
 package org.fcrepo.client.impl;
 
+import static org.apache.http.HttpStatus.SC_CONFLICT;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_NO_CONTENT;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.InputStream;
@@ -29,8 +34,16 @@ import java.util.Set;
 
 import org.apache.jena.atlas.lib.NotImplemented;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPut;
+
+import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
+import org.fcrepo.client.ForbiddenException;
+import org.fcrepo.client.NotFoundException;
 import org.fcrepo.client.ReadOnlyException;
 import org.fcrepo.client.utils.HttpHelper;
 import org.fcrepo.kernel.RdfLexicon;
@@ -152,15 +165,85 @@ public class FedoraResourceImpl implements FedoraResource {
     }
 
     @Override
-    public void updateProperties(final String sparqlUpdate) throws ReadOnlyException {
-        // TODO Auto-generated method stub
-        throw new NotImplemented("Method updateProperties(final String sparqlUpdate) is not implemented.");
+    public void updateProperties(final String sparqlUpdate) throws FedoraException {
+        final HttpPatch patch = httpHelper.createPatchMethod(path, sparqlUpdate);
+
+        try {
+            final HttpResponse response = httpHelper.execute( patch );
+            final StatusLine status = response.getStatusLine();
+            final String uri = patch.getURI().toString();
+
+            if ( status.getStatusCode() == SC_NO_CONTENT) {
+                LOGGER.debug("triples updated successfully for resource {}", uri);
+            } else if ( status.getStatusCode() == SC_FORBIDDEN) {
+                LOGGER.error("updating resource {} is not authorized.", uri);
+                throw new ForbiddenException("updating resource " + uri + " is not authorized.");
+            } else if ( status.getStatusCode() == SC_NOT_FOUND) {
+                LOGGER.error("resource {} does not exist, cannot update", uri);
+                throw new NotFoundException("resource " + uri + " does not exist, cannot update");
+            } else if ( status.getStatusCode() == SC_CONFLICT) {
+                LOGGER.error("resource {} is locked", uri);
+                throw new FedoraException("resource is locked: " + uri);
+            } else {
+                LOGGER.error("error updating resource {}: {} {}", uri, status.getStatusCode(),
+                             status.getReasonPhrase());
+                throw new FedoraException("error retrieving resource " + uri + ": " + status.getStatusCode() + " " +
+                                          status.getReasonPhrase());
+            }
+
+            // update properties from server
+            httpHelper.loadProperties(this);
+
+        } catch (final FedoraException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("could not encode URI parameter", e);
+            throw new FedoraException(e);
+        } finally {
+            patch.releaseConnection();
+        }
     }
 
     @Override
-    public void updateProperties(final InputStream updatedProperties) throws ReadOnlyException {
-        // TODO Auto-generated method stub
-        throw new NotImplemented("Method updateProperties(final InputStream updatedProperties) is not implemented.");
+    public void updateProperties(final InputStream updatedProperties, final String contentType)
+            throws FedoraException {
+
+        final HttpPut put = httpHelper.createTriplesPutMethod(path, updatedProperties, contentType);
+
+        try {
+            final HttpResponse response = httpHelper.execute( put );
+            final StatusLine status = response.getStatusLine();
+            final String uri = put.getURI().toString();
+
+            if ( status.getStatusCode() == SC_NO_CONTENT) {
+                LOGGER.debug("triples updated successfully for resource {}", uri);
+            } else if ( status.getStatusCode() == SC_FORBIDDEN) {
+                LOGGER.error("updating resource {} is not authorized.", uri);
+                throw new ForbiddenException("updating resource " + uri + " is not authorized.");
+            } else if ( status.getStatusCode() == SC_NOT_FOUND) {
+                LOGGER.error("resource {} does not exist, cannot update", uri);
+                throw new NotFoundException("resource " + uri + " does not exist, cannot update");
+            } else if ( status.getStatusCode() == SC_CONFLICT) {
+                LOGGER.error("resource {} is locked", uri);
+                throw new FedoraException("resource is locked: " + uri);
+            } else {
+                LOGGER.error("error updating resource {}: {} {}", uri, status.getStatusCode(),
+                             status.getReasonPhrase());
+                throw new FedoraException("error retrieving resource " + uri + ": " + status.getStatusCode() + " " +
+                                          status.getReasonPhrase());
+            }
+
+            // update properties from server
+            httpHelper.loadProperties(this);
+
+        } catch (final FedoraException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("Error executing request", e);
+            throw new FedoraException(e);
+        } finally {
+            put.releaseConnection();
+        }
     }
 
     @Override
