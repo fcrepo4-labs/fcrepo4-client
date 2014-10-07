@@ -317,23 +317,24 @@ public class HttpHelper {
                 resource.setGraph( RDFSinkFilter.filterTriples(streamTriples.getCollected().iterator(), Node.ANY) );
                 return resource;
             } else if (status.getStatusCode() == SC_FORBIDDEN) {
-                LOGGER.error("request for resource {} is not authorized.", uri);
+                LOGGER.info("request for resource {} is not authorized.", uri);
                 throw new ForbiddenException("request for resource " + uri + " is not authorized.");
             } else if (status.getStatusCode() == SC_BAD_REQUEST) {
-                LOGGER.error("server does not support metadata type application/rdf+xml for resource {} " +
+                LOGGER.info("server does not support metadata type application/rdf+xml for resource {} " +
                                      " cannot retrieve", uri);
                 throw new BadRequestException("server does not support the request metadata type for resource " + uri);
             } else if (status.getStatusCode() == SC_NOT_FOUND) {
-                LOGGER.error("resource {} does not exist, cannot retrieve", uri);
+                LOGGER.info("resource {} does not exist, cannot retrieve", uri);
                 throw new NotFoundException("resource " + uri + " does not exist, cannot retrieve");
             } else {
+                LOGGER.info("unexpected status code ({}) when retrieving resource {}", status.getStatusCode(), uri);
                 throw new FedoraException("error retrieving resource " + uri + ": " + status.getStatusCode() + " "
                                           + status.getReasonPhrase());
             }
         } catch (final FedoraException e) {
             throw e;
         } catch (final Exception e) {
-            LOGGER.error("could not encode URI parameter", e);
+            LOGGER.info("could not encode URI parameter", e);
             throw new FedoraException(e);
         } finally {
             get.releaseConnection();
