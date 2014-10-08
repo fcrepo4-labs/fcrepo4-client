@@ -16,9 +16,19 @@
 
 package org.fcrepo.client.impl;
 
-import java.util.Collection;
+import static org.fcrepo.kernel.RdfLexicon.HAS_CHILD;
+import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
 
-import org.apache.jena.atlas.lib.NotImplemented;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.graph.NodeFactory;
+import com.hp.hpl.jena.graph.Triple;
+import com.hp.hpl.jena.util.iterator.ExtendedIterator;
+
+import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
@@ -28,9 +38,11 @@ import org.fcrepo.client.utils.HttpHelper;
  * A Fedora Object Impl.
  *
  * @author lsitu
+ * @author escowles
  * @since 2014-08-11
  */
 public class FedoraObjectImpl extends FedoraResourceImpl implements FedoraObject {
+    private final static Node datastreamMixin = NodeFactory.createLiteral("fedora:datastream");
 
     /**
      * Constructor for FedoraObjectImpl
@@ -48,7 +60,25 @@ public class FedoraObjectImpl extends FedoraResourceImpl implements FedoraObject
      *
      * @param mixin If not null, limit to results that have this mixin.
      */
-    public Collection<FedoraResource> getChildren(final String mixin) {
-        throw new NotImplemented("Method getChildren( final String mixin ) is not implemented for FedoraObject.");
+    public Collection<FedoraResource> getChildren(final String mixin) throws FedoraException {
+        Node mixinLiteral = null;
+        if ( mixin != null ) {
+            mixinLiteral = NodeFactory.createLiteral(mixin);
+        }
+        final ExtendedIterator<Triple> it = graph.find(Node.ANY, HAS_CHILD.asNode(), Node.ANY);
+        final Set<FedoraResource> set = new HashSet<>();
+        while (it.hasNext()) {
+            final Node child = it.next().getObject();
+            if ( mixin == null || graph.contains(child, HAS_MIXIN_TYPE.asNode(), mixinLiteral) ) {
+                final String path = child.getURI().toString()
+                        .replaceAll(repository.getRepositoryUrl(),"");
+                if ( graph.contains(child, HAS_MIXIN_TYPE.asNode(), datastreamMixin) ) {
+                    set.add( repository.getDatastream(path) );
+                } else {
+                    set.add( repository.getObject(path) );
+                }
+            }
+        }
+        return set;
     }
 }
