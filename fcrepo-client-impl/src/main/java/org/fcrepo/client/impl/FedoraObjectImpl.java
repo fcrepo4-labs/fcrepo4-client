@@ -16,7 +16,7 @@
 
 package org.fcrepo.client.impl;
 
-import static org.fcrepo.kernel.RdfLexicon.HAS_CHILD;
+import static org.fcrepo.kernel.RdfLexicon.CONTAINS;
 import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
 
 import java.util.Collection;
@@ -42,7 +42,7 @@ import org.fcrepo.client.utils.HttpHelper;
  * @since 2014-08-11
  */
 public class FedoraObjectImpl extends FedoraResourceImpl implements FedoraObject {
-    private final static Node datastreamMixin = NodeFactory.createLiteral("fedora:datastream");
+    private final static Node binaryType = NodeFactory.createLiteral("fedora:binary");
 
     /**
      * Constructor for FedoraObjectImpl
@@ -65,14 +65,14 @@ public class FedoraObjectImpl extends FedoraResourceImpl implements FedoraObject
         if ( mixin != null ) {
             mixinLiteral = NodeFactory.createLiteral(mixin);
         }
-        final ExtendedIterator<Triple> it = graph.find(Node.ANY, HAS_CHILD.asNode(), Node.ANY);
+        final ExtendedIterator<Triple> it = graph.find(Node.ANY, CONTAINS.asNode(), Node.ANY);
         final Set<FedoraResource> set = new HashSet<>();
         while (it.hasNext()) {
             final Node child = it.next().getObject();
             if ( mixin == null || graph.contains(child, HAS_MIXIN_TYPE.asNode(), mixinLiteral) ) {
                 final String path = child.getURI().toString()
                         .replaceAll(repository.getRepositoryUrl(),"");
-                if ( graph.contains(child, HAS_MIXIN_TYPE.asNode(), datastreamMixin) ) {
+                if ( graph.contains(child, HAS_MIXIN_TYPE.asNode(), binaryType) ) {
                     set.add( repository.getDatastream(path) );
                 } else {
                     set.add( repository.getObject(path) );

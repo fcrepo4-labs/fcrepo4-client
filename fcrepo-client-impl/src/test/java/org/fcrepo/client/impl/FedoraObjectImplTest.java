@@ -26,7 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static org.fcrepo.kernel.RdfLexicon.HAS_CHILD;
+import static org.fcrepo.kernel.RdfLexicon.CONTAINS;
 import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
 
 import static org.junit.Assert.assertFalse;
@@ -91,10 +91,10 @@ public class FedoraObjectImplTest {
         datastreamChild = new FedoraDatastreamImpl(mockRepository, mockHelper, datastreamChildPath);
 
         final Graph graph = createDefaultGraph();
-        graph.add( create(objectSubj, HAS_CHILD.asNode(), datastreamChildSubj) );
-        graph.add( create(objectSubj, HAS_CHILD.asNode(), objectChildSubj) );
-        graph.add( create(objectSubj, HAS_CHILD.asNode(), customChildSubj) );
-        graph.add( create(datastreamChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral("fedora:datastream")) );
+        graph.add( create(objectSubj, CONTAINS.asNode(), datastreamChildSubj) );
+        graph.add( create(objectSubj, CONTAINS.asNode(), objectChildSubj) );
+        graph.add( create(objectSubj, CONTAINS.asNode(), customChildSubj) );
+        graph.add( create(datastreamChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral("fedora:binary")) );
         graph.add( create(objectChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral("fedora:object")) );
         graph.add( create(customChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral("fedora:custom")) );
         objectWithChildren.setGraph( graph );
@@ -142,7 +142,7 @@ public class FedoraObjectImplTest {
 
     @Test
     public void testGetChildrenDatastreams() throws FedoraException {
-        final Collection<FedoraResource> children = objectWithChildren.getChildren("fedora:datastream");
+        final Collection<FedoraResource> children = objectWithChildren.getChildren("fedora:binary");
         verify(mockRepository, never()).getObject(objectChildPath);
         verify(mockRepository, never()).getObject(customChildPath);
         verify(mockRepository).getDatastream(datastreamChildPath);

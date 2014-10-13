@@ -83,7 +83,7 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
      */
     public FedoraDatastreamImpl(final FedoraRepository repository, final HttpHelper httpHelper, final String path) {
         super(repository, httpHelper, path);
-        contentSubject = NodeFactory.createURI( repository.getRepositoryUrl() + path + "/fcr:content" );
+        contentSubject = NodeFactory.createURI( repository.getRepositoryUrl() + path );
     }
 
     @Override
@@ -189,7 +189,7 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
 
     @Override
     public InputStream getContent() throws FedoraException {
-        final HttpGet get = httpHelper.createGetMethod( path + "/fcr:content", null );
+        final HttpGet get = httpHelper.createGetMethod( path, null );
         final String uri = get.getURI().toString();
 
         try {

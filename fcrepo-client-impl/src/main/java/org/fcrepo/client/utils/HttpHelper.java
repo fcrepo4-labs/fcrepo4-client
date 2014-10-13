@@ -71,7 +71,9 @@ import org.apache.jena.riot.RiotReader;
 import org.apache.jena.riot.lang.CollectorStreamTriples;
 
 import org.fcrepo.client.FedoraContent;
+import org.fcrepo.client.FedoraDatastream;
 import org.fcrepo.client.FedoraException;
+import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.ReadOnlyException;
 import org.fcrepo.client.impl.FedoraResourceImpl;
 
@@ -239,7 +241,7 @@ public class HttpHelper {
     **/
     public HttpPut createContentPutMethod(final String path, final Map<String, List<String>> params,
                                           final FedoraContent content ) {
-        String contentPath = path + "/fcr:content";
+        String contentPath = path;
         if ( content != null && content.getChecksum() != null ) {
             contentPath += "?checksum=" + content.getChecksum();
         }
@@ -291,7 +293,12 @@ public class HttpHelper {
      * @return the updated resource
     **/
     public FedoraResourceImpl loadProperties( final FedoraResourceImpl resource ) throws FedoraException {
-        final HttpGet get = createGetMethod(resource.getPath(), null);
+        final String path = resource.getPath() + (resource instanceof FedoraDatastream ? "/fcr:metadata" : "");
+        final HttpGet get = createGetMethod(path, null);
+        if (resource instanceof FedoraObject) {
+            get.addHeader("Prefer", "return=representation; "
+                + "include=\"http://fedora.info/definitions/v4/repository#EmbedResources\"");
+        }
 
         try {
             get.setHeader("accept", "application/rdf+xml");
@@ -334,6 +341,7 @@ public class HttpHelper {
         } catch (final FedoraException e) {
             throw e;
         } catch (final Exception e) {
+            e.printStackTrace();
             LOGGER.info("could not encode URI parameter", e);
             throw new FedoraException(e);
         } finally {
