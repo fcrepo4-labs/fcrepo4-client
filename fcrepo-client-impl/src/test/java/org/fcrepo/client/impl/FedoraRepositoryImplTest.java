@@ -250,7 +250,7 @@ public class FedoraRepositoryImplTest {
 
         final HttpPut put = httpHelper.createContentPutMethod(path, null, cont);
 
-        assertEquals( testRepositoryUrl + path + "/fcr:content?checksum=" + chk, put.getURI().toString() );
+        assertEquals( testRepositoryUrl + path + "?checksum=" + chk, put.getURI().toString() );
         assertEquals( in, put.getEntity().getContent() );
         assertEquals( mime, put.getFirstHeader("Content-Type").getValue() );
         assertEquals( "attachment; filename=\"" + fn + "\"", put.getFirstHeader("Content-Disposition").getValue() );

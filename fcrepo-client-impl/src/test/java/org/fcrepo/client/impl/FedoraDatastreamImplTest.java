@@ -108,7 +108,7 @@ public class FedoraDatastreamImplTest {
     private String contentSize = "545376";
     private final String repositoryURL = "http://localhost:8080/rest";
     private Node dsSubj = createURI(repositoryURL + path);
-    private Node contentSubj = createURI(repositoryURL + path + "/fcr:content");
+    private Node contentSubj = createURI(repositoryURL + path);
 
 
     @Before
@@ -225,7 +225,7 @@ public class FedoraDatastreamImplTest {
 
     @Test
     public void testGetContent() throws IOException, URISyntaxException, FedoraException {
-        final URI getURI = new URI(repositoryURL + path + "/fcr:content");
+        final URI getURI = new URI(repositoryURL + path);
         final HttpGet mockGet = mock(HttpGet.class);
         final HttpResponse mockResponse = mock(HttpResponse.class);
         final StatusLine mockStatus = mock(StatusLine.class);
@@ -254,7 +254,7 @@ public class FedoraDatastreamImplTest {
             .setContent(new ByteArrayInputStream(mockContent.getBytes()))
             .setFilename(newFilename).setContentType(newMimeType);
 
-        final URI putURI = new URI(repositoryURL + path + "/fcr:content");
+        final URI putURI = new URI(repositoryURL + path);
         final HttpPut mockPut = mock(HttpPut.class);
         final HttpResponse mockResponse = mock(HttpResponse.class);
         final StatusLine mockStatus = mock(StatusLine.class);

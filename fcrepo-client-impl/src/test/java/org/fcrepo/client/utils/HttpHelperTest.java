@@ -165,7 +165,7 @@ public class HttpHelperTest {
                 .setFilename(filename);
 
         final HttpPut put = helper.createContentPutMethod("/foo", params, content);
-        assertEquals( repoURL + "/foo/fcr:content?foo=bar&foo=baz", put.getURI().toString() );
+        assertEquals( repoURL + "/foo?foo=bar&foo=baz", put.getURI().toString() );
         assertEquals( mimeType, put.getFirstHeader("Content-Type").getValue());
         assertEquals( dummyContent, IOUtils.toString(put.getEntity().getContent()) );
         assertEquals( "attachment; filename=\"" + filename + "\"",
