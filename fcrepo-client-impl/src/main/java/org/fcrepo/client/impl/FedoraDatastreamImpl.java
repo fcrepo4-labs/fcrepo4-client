@@ -25,7 +25,7 @@ import static org.apache.http.HttpStatus.SC_OK;
 
 import static com.hp.hpl.jena.rdf.model.ResourceFactory.createProperty;
 
-import static org.fcrepo.kernel.RdfLexicon.HAS_CONTENT;
+import static org.fcrepo.kernel.RdfLexicon.DESCRIBES;
 import static org.fcrepo.kernel.RdfLexicon.HAS_ORIGINAL_NAME;
 import static org.fcrepo.kernel.RdfLexicon.HAS_MIME_TYPE;
 import static org.fcrepo.kernel.RdfLexicon.HAS_SIZE;
@@ -83,13 +83,14 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
      */
     public FedoraDatastreamImpl(final FedoraRepository repository, final HttpHelper httpHelper, final String path) {
         super(repository, httpHelper, path);
-        contentSubject = NodeFactory.createURI( repository.getRepositoryUrl() + path );
+        contentSubject = NodeFactory.createURI(
+                repository.getRepositoryUrl() + path.substring(0, path.lastIndexOf("/")) );
     }
 
     @Override
     public void setGraph( final Graph graph ) {
         super.setGraph( graph );
-        hasContent = getTriple( subject, HAS_CONTENT ) != null;
+        hasContent = getTriple( subject, DESCRIBES ) != null;
     }
 
     @Override
@@ -99,7 +100,15 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
 
     @Override
     public FedoraObject getObject() throws FedoraException {
-        return repository.getObject( path.substring(0, path.lastIndexOf("/")) );
+        final String contentPath = path.substring(0, path.lastIndexOf("/"));
+        return repository.getObject( contentPath.substring(0, contentPath.lastIndexOf("/")) );
+    }
+
+    @Override
+    public String getName() {
+        final String p = path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+        final String[] paths = p.split("/");
+        return paths[paths.length - 2];
     }
 
     @Override
@@ -111,7 +120,7 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
             }
 
             return new URI( contentDigest.getURI() );
-        } catch ( URISyntaxException e ) {
+        } catch ( final URISyntaxException e ) {
             throw new FedoraException("Error parsing checksum URI: " + contentDigest.getURI(), e);
         }
     }

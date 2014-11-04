@@ -30,7 +30,7 @@ import static org.fcrepo.kernel.RdfLexicon.CREATED_DATE;
 import static org.fcrepo.kernel.RdfLexicon.LAST_MODIFIED_DATE;
 import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
 import static org.fcrepo.kernel.RdfLexicon.WRITABLE;
-import static org.fcrepo.kernel.RdfLexicon.HAS_CONTENT;
+import static org.fcrepo.kernel.RdfLexicon.DESCRIBES;
 import static org.fcrepo.kernel.RdfLexicon.HAS_SIZE;
 import static org.fcrepo.kernel.RdfLexicon.HAS_MIME_TYPE;
 import static org.fcrepo.kernel.RdfLexicon.HAS_ORIGINAL_NAME;
@@ -93,7 +93,7 @@ public class FedoraDatastreamImplTest {
 
     private FedoraDatastreamImpl datastream;
 
-    private String path = "/test/image";
+    private String path = "/test/image/fcr:metadata";
 
     private boolean isWritable = true;
 
@@ -108,7 +108,7 @@ public class FedoraDatastreamImplTest {
     private String contentSize = "545376";
     private final String repositoryURL = "http://localhost:8080/rest";
     private Node dsSubj = createURI(repositoryURL + path);
-    private Node contentSubj = createURI(repositoryURL + path);
+    private Node contentSubj = createURI(repositoryURL + path.substring(0, path.lastIndexOf("/")));
 
 
     @Before
@@ -128,7 +128,7 @@ public class FedoraDatastreamImplTest {
         graph.add( create(dsSubj, HAS_MIXIN_TYPE.asNode(), createURI(testMixinType)) );
         graph.add( create(dsSubj, WRITABLE.asNode(),
             ResourceFactory.createTypedLiteral(new Boolean(isWritable)).asNode()) );
-        graph.add( create(dsSubj, HAS_CONTENT.asNode(), contentSubj) );
+        graph.add( create(dsSubj, DESCRIBES.asNode(), contentSubj) );
         graph.add( create(contentSubj, HAS_SIZE.asNode(), ResourceFactory.createPlainLiteral(contentSize).asNode()) );
         graph.add( create(contentSubj, HAS_MIME_TYPE.asNode(), ResourceFactory.createPlainLiteral(mimeType).asNode()) );
         graph.add( create(contentSubj, HAS_ORIGINAL_NAME.asNode(),
