@@ -47,18 +47,18 @@ public class RDFSinkFilterTest {
     private Iterator<Triple> mockTriples;
 
     private String testDateValue = "2014-08-14T15:11:30.118Z";
-    private String testMixinType = RdfLexicon.REPOSITORY_NAMESPACE + "test";
+    private String testMixinType = RdfLexicon.REPOSITORY_NAMESPACE + "test-mixin-type";
     private final Triple testCreatedDateTriple =
-            create(createURI(RdfLexicon.RESTAPI_NAMESPACE + "test"), RdfLexicon.CREATED_DATE.asNode(),
+            create(createURI(RdfLexicon.REPOSITORY_NAMESPACE + "test"), RdfLexicon.CREATED_DATE.asNode(),
                     ResourceFactory.createPlainLiteral(testDateValue).asNode());
     private final Triple testLastModifiedDateTriple =
-            create(createURI(RdfLexicon.RESTAPI_NAMESPACE + "test"), RdfLexicon.LAST_MODIFIED_DATE.asNode(),
+            create(createURI(RdfLexicon.REPOSITORY_NAMESPACE + "test"), RdfLexicon.LAST_MODIFIED_DATE.asNode(),
                     ResourceFactory.createPlainLiteral(testDateValue).asNode());
     private final Triple testMixinTriple =
-            create(createURI(RdfLexicon.RESTAPI_NAMESPACE + "test"),
+            create(createURI(RdfLexicon.REPOSITORY_NAMESPACE + "test"),
                     RdfLexicon.HAS_MIXIN_TYPE.asNode(), createURI(testMixinType));
     private final Triple testIsWritable =
-            create(createURI(RdfLexicon.RESTAPI_NAMESPACE + "test"),
+            create(createURI(RdfLexicon.REPOSITORY_NAMESPACE + "test"),
                     RdfLexicon.WRITABLE.asNode(), ResourceFactory.createPlainLiteral("true").asNode());
 
     @Before

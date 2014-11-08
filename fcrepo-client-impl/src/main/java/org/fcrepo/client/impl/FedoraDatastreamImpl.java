@@ -29,7 +29,7 @@ import static org.fcrepo.kernel.RdfLexicon.DESCRIBES;
 import static org.fcrepo.kernel.RdfLexicon.HAS_ORIGINAL_NAME;
 import static org.fcrepo.kernel.RdfLexicon.HAS_MIME_TYPE;
 import static org.fcrepo.kernel.RdfLexicon.HAS_SIZE;
-import static org.fcrepo.kernel.RdfLexicon.RESTAPI_NAMESPACE;
+import static org.fcrepo.kernel.RdfLexicon.REPOSITORY_NAMESPACE;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -70,7 +70,7 @@ import org.slf4j.Logger;
  */
 public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDatastream {
     private static final Logger LOGGER = getLogger(FedoraDatastreamImpl.class);
-    protected static final Property REST_API_DIGEST = createProperty(RESTAPI_NAMESPACE + "digest");
+    protected static final Property REST_API_DIGEST = createProperty(REPOSITORY_NAMESPACE + "digest");
     private boolean hasContent;
     private Node contentSubject;
 
