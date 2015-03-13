@@ -29,10 +29,12 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 
 import org.fcrepo.client.FedoraException;
@@ -179,5 +181,20 @@ public class FedoraResourceImplTest {
         resource.updateProperties(in, "text/n3");
         verify(mockHelper).execute(put);
         verify(mockHelper).loadProperties(resource);
+    }
+
+    @Test
+    public void testCreateVersionSnapshot() throws Exception {
+        final HttpResponse mockResponse = mock(HttpResponse.class);
+        final StatusLine mockStatus = mock(StatusLine.class);
+        final HttpPost post = new HttpPost(repositoryURL);
+        when(mockHelper.execute(any(HttpPost.class))).thenReturn(mockResponse);
+        when(mockResponse.getStatusLine()).thenReturn(mockStatus);
+        when(mockStatus.getStatusCode()).thenReturn(204);
+        when(mockHelper.createPostMethod(anyString(), any(Map.class))).thenReturn(post);
+        final String label = "examplelabel";
+        resource.createVersionSnapshot(label);
+        verify(mockHelper).execute(post);
+        assertEquals(label, post.getFirstHeader("Slug").getValue());
     }
 }

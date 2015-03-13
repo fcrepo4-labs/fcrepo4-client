@@ -22,6 +22,7 @@ import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -31,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.apache.http.client.methods.HttpPost;
 import org.apache.jena.atlas.lib.NotImplemented;
 
 import org.apache.http.HttpResponse;
@@ -186,7 +188,7 @@ public class FedoraResourceImpl implements FedoraResource {
             } else {
                 LOGGER.error("error updating resource {}: {} {}", uri, status.getStatusCode(),
                              status.getReasonPhrase());
-                throw new FedoraException("error retrieving resource " + uri + ": " + status.getStatusCode() + " " +
+                throw new FedoraException("error updating resource " + uri + ": " + status.getStatusCode() + " " +
                                           status.getReasonPhrase());
             }
 
@@ -228,7 +230,7 @@ public class FedoraResourceImpl implements FedoraResource {
             } else {
                 LOGGER.error("error updating resource {}: {} {}", uri, status.getStatusCode(),
                              status.getReasonPhrase());
-                throw new FedoraException("error retrieving resource " + uri + ": " + status.getStatusCode() + " " +
+                throw new FedoraException("error updating resource " + uri + ": " + status.getStatusCode() + " " +
                                           status.getReasonPhrase());
             }
 
@@ -253,6 +255,40 @@ public class FedoraResourceImpl implements FedoraResource {
             return Boolean.parseBoolean(it.next());
         }
         return false;
+    }
+
+    @Override
+    public void createVersionSnapshot(final String label) throws FedoraException {
+        final HttpPost postVersion = httpHelper.createPostMethod(path + "/fcr:versions", null);
+        try {
+            postVersion.setHeader("Slug", label);
+            final HttpResponse response = httpHelper.execute(postVersion);
+            final StatusLine status = response.getStatusLine();
+            final String uri = postVersion.getURI().toString();
+
+            if ( status.getStatusCode() == SC_NO_CONTENT) {
+                LOGGER.debug("new version created for resource at {}", uri);
+            } else if ( status.getStatusCode() == SC_CONFLICT) {
+                LOGGER.debug("The label {} is in use by another version.", label);
+                throw new FedoraException("The label \"" + label + "\" is in use by another version.");
+            } else if ( status.getStatusCode() == SC_FORBIDDEN) {
+                LOGGER.error("updating resource {} is not authorized.", uri);
+                throw new ForbiddenException("updating resource " + uri + " is not authorized.");
+            } else if ( status.getStatusCode() == SC_NOT_FOUND) {
+                LOGGER.error("resource {} does not exist, cannot create version", uri);
+                throw new NotFoundException("resource " + uri + " does not exist, cannot create version");
+            } else {
+                LOGGER.error("error updating resource {}: {} {}", uri, status.getStatusCode(),
+                        status.getReasonPhrase());
+                throw new FedoraException("error updating resource " + uri + ": " + status.getStatusCode() + " " +
+                        status.getReasonPhrase());
+            }
+        } catch (IOException e) {
+            LOGGER.error("Error executing request", e);
+            throw new FedoraException(e);
+        } finally {
+            postVersion.releaseConnection();
+        }
     }
 
     /**

@@ -105,4 +105,13 @@ public interface FedoraResource {
      * Check whether this Resource is writable.
     **/
     public boolean isWritable();
+
+    /**
+     * Creates a new version snapshot for this Resource with
+     * the given label.
+     * @param label the label for the version (must conform to naming
+     *              requirements enforced by the repository).
+    **/
+    public void createVersionSnapshot( String label ) throws FedoraException;
+
 }
