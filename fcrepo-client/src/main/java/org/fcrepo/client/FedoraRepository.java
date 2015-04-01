@@ -59,6 +59,13 @@ public interface FedoraRepository {
     public FedoraDatastream createDatastream( String path, FedoraContent content ) throws FedoraException;
 
     /**
+     * Create or replace a new external datastream.
+     * @param path The path of the datastream.
+     * @param url the URL to which accessors of the datastream will be redirected.
+     **/
+    public FedoraDatastream createOrUpdateRedirectDatastream( String path, String url ) throws FedoraException;
+
+    /**
      * Create a new Object.
      * @param path The Object path.
     **/
