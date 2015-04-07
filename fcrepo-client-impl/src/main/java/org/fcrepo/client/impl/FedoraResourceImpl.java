@@ -167,7 +167,7 @@ public class FedoraResourceImpl implements FedoraResource {
 
     @Override
     public void updateProperties(final String sparqlUpdate) throws FedoraException {
-        final HttpPatch patch = httpHelper.createPatchMethod(path, sparqlUpdate);
+        final HttpPatch patch = httpHelper.createPatchMethod(getPropertiesPath(), sparqlUpdate);
 
         try {
             final HttpResponse response = httpHelper.execute( patch );
@@ -209,7 +209,7 @@ public class FedoraResourceImpl implements FedoraResource {
     public void updateProperties(final InputStream updatedProperties, final String contentType)
             throws FedoraException {
 
-        final HttpPut put = httpHelper.createTriplesPutMethod(path, updatedProperties, contentType);
+        final HttpPut put = httpHelper.createTriplesPutMethod(getPropertiesPath(), updatedProperties, contentType);
 
         try {
             final HttpResponse response = httpHelper.execute( put );
@@ -356,6 +356,13 @@ public class FedoraResourceImpl implements FedoraResource {
         } finally {
             it.close();
         }
+    }
+
+    /**
+     * Gets the path to which properties of this resource may be accessed.
+     */
+    public String getPropertiesPath() {
+        return path;
     }
 
 }

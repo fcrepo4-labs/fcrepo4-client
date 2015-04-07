@@ -70,7 +70,6 @@ import org.apache.jena.riot.RiotReader;
 import org.apache.jena.riot.lang.CollectorStreamTriples;
 
 import org.fcrepo.client.FedoraContent;
-import org.fcrepo.client.FedoraDatastream;
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.ReadOnlyException;
@@ -292,7 +291,7 @@ public class HttpHelper {
      * @return the updated resource
     **/
     public FedoraResourceImpl loadProperties( final FedoraResourceImpl resource ) throws FedoraException {
-        final String path = resource.getPath() + (resource instanceof FedoraDatastream ? "/fcr:metadata" : "");
+        final String path = resource.getPropertiesPath();
         final HttpGet get = createGetMethod(path, null);
         if (resource instanceof FedoraObject) {
             get.addHeader("Prefer", "return=representation; "

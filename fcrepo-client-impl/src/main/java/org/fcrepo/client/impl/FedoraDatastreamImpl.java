@@ -59,6 +59,7 @@ import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.utils.HttpHelper;
 
+import org.fcrepo.kernel.FedoraJcrTypes;
 import org.slf4j.Logger;
 
 /**
@@ -90,6 +91,11 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
     public void setGraph( final Graph graph ) {
         super.setGraph( graph );
         hasContent = getTriple( subject, DESCRIBES ) != null;
+    }
+
+    @Override
+    public String getPropertiesPath() {
+        return path + "/" + FedoraJcrTypes.FCR_METADATA;
     }
 
     @Override
