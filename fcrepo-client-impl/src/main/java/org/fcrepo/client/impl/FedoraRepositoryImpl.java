@@ -15,21 +15,7 @@
  */
 package org.fcrepo.client.impl;
 
-import static org.slf4j.LoggerFactory.getLogger;
-
-import java.io.InputStream;
-import java.util.Iterator;
-import java.util.Map;
-
-import org.fcrepo.client.ForbiddenException;
-import org.fcrepo.client.NotFoundException;
-
-import static org.apache.http.HttpStatus.SC_CONFLICT;
-import static org.apache.http.HttpStatus.SC_CREATED;
-import static org.apache.http.HttpStatus.SC_FORBIDDEN;
-import static org.apache.http.HttpStatus.SC_NOT_FOUND;
-import static org.apache.http.HttpStatus.SC_OK;
-
+import com.hp.hpl.jena.graph.Triple;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
@@ -40,11 +26,22 @@ import org.fcrepo.client.FedoraDatastream;
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
+import org.fcrepo.client.ForbiddenException;
+import org.fcrepo.client.NotFoundException;
 import org.fcrepo.client.ReadOnlyException;
 import org.fcrepo.client.utils.HttpHelper;
 import org.slf4j.Logger;
 
-import com.hp.hpl.jena.graph.Triple;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.Map;
+
+import static org.apache.http.HttpStatus.SC_CONFLICT;
+import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+import static org.apache.http.HttpStatus.SC_OK;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * FedoraRepositoryImpl manage httpclient instance to run requests
@@ -157,6 +154,35 @@ public class FedoraRepositoryImpl implements FedoraRepository {
             }
         } catch (final Exception e) {
             LOGGER.error("could not encode URI parameter", e);
+            throw new FedoraException(e);
+        } finally {
+            put.releaseConnection();
+        }
+    }
+
+    @Override
+    public FedoraDatastream createOrUpdateRedirectDatastream(final String path, final String url)
+            throws FedoraException {
+        final HttpPut put = httpHelper.createContentPutMethod(path, null, null);
+        try {
+            put.setHeader("Content-Type", "message/external-body; access-type=URL; URL=\"" + url + "\"");
+            final HttpResponse response = httpHelper.execute(put);
+            final String uri = put.getURI().toString();
+            final StatusLine status = response.getStatusLine();
+            final int statusCode = status.getStatusCode();
+
+            if (statusCode == SC_CREATED) {
+                return getDatastream(path);
+            } else if (statusCode == SC_FORBIDDEN) {
+                LOGGER.error("request to create resource {} is not authorized.", uri);
+                throw new ForbiddenException("request to create resource " + uri + " is not authorized.");
+            } else {
+                LOGGER.error("error creating resource {}: {} {}", uri, statusCode, status.getReasonPhrase());
+                throw new FedoraException("error creating resource " + uri + ": " + statusCode + " " +
+                        status.getReasonPhrase());
+            }
+        } catch (final Exception e) {
+            LOGGER.error("Error making or building PUT request.", e);
             throw new FedoraException(e);
         } finally {
             put.releaseConnection();

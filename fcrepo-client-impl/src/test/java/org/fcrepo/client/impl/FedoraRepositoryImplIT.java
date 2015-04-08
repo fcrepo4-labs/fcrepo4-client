@@ -18,6 +18,7 @@ package org.fcrepo.client.impl;
 import com.hp.hpl.jena.graph.NodeFactory;
 import com.hp.hpl.jena.graph.Triple;
 import junit.framework.Assert;
+import org.apache.commons.io.IOUtils;
 import org.fcrepo.client.FedoraContent;
 import org.fcrepo.client.FedoraDatastream;
 import org.fcrepo.client.FedoraException;
@@ -29,6 +30,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
@@ -109,6 +111,27 @@ public class FedoraRepositoryImplIT {
             }
         }
         Assert.fail("Unable to verify added datastream property!");
+    }
+
+    @Test
+    public void testCreateOrUpdateRedirectDatastream() throws FedoraException, IOException {
+        final String objectPath = getRandomUniqueId();
+        repo.createObject(objectPath);
+        final String value = "Value of first datastream.";
+
+        // create a text datastream with the value "test"
+        final String datastreamPath1 = objectPath + "/" + getRandomUniqueId();
+        final FedoraDatastream datastream1 = repo.createDatastream(datastreamPath1, getStringTextContent(value));
+
+        // create a second datastream that is a redirect to the first
+        final String datastreamPath2 = objectPath + "/" + getRandomUniqueId();
+        final FedoraDatastream datastream2
+                = repo.createOrUpdateRedirectDatastream(datastreamPath2, repo.getRepositoryUrl() + datastreamPath1);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        IOUtils.copy(datastream2.getContent(), baos);
+        Assert.assertEquals("Second datastream should be a redirect to the first!", value, baos.toString("UTF-8"));
+
     }
 
     private FedoraContent getStringTextContent(final String value) throws UnsupportedEncodingException {
