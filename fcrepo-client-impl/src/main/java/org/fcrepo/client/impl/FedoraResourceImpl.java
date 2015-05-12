@@ -19,7 +19,6 @@ import static org.apache.http.HttpStatus.SC_CONFLICT;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
-
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
@@ -32,23 +31,22 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.http.client.methods.HttpPost;
-import org.apache.jena.atlas.lib.NotImplemented;
-
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
-
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
 import org.fcrepo.client.ForbiddenException;
 import org.fcrepo.client.NotFoundException;
-import org.fcrepo.client.ReadOnlyException;
+import org.fcrepo.client.utils.HttpCopy;
 import org.fcrepo.client.utils.HttpHelper;
+import org.fcrepo.client.utils.HttpMove;
 import org.fcrepo.kernel.RdfLexicon;
-
 import org.slf4j.Logger;
 
 import com.hp.hpl.jena.graph.Graph;
@@ -76,6 +74,8 @@ public class FedoraResourceImpl implements FedoraResource {
 
     protected String path = null;
 
+    protected String oldPath = null;
+
     protected Node subject = null;
 
     protected Graph graph;
@@ -97,15 +97,118 @@ public class FedoraResourceImpl implements FedoraResource {
     }
 
     @Override
-    public void copy(final String destination) throws ReadOnlyException {
-        // TODO Auto-generated method stub
-        throw new NotImplemented("Method copy(final String destination) is not implemented.");
+    public void copy(final String destination) throws FedoraException {
+
+        final HttpCopy copy = httpHelper.createCopyMethod(path,destination);
+
+        try {
+            final HttpResponse response = httpHelper.execute( copy );
+            final StatusLine status = response.getStatusLine();
+            final String uri = copy.getURI().toString();
+
+            if (status.getStatusCode() == HttpStatus.SC_CREATED) { // Created
+                 LOGGER.debug("resource successfully copied from " + path + " to " + destination, uri);
+            } else if (status.getStatusCode() == HttpStatus.SC_CONFLICT) { // Source path doesn't exists
+                LOGGER.error("error copying resource {}: {} {}", uri, status.getStatusCode(),
+                        status.getReasonPhrase());
+                throw new FedoraException("error copying resource " + uri + ": " + status.getStatusCode() + " " +
+                                     status.getReasonPhrase());
+            } else if (status.getStatusCode() == HttpStatus.SC_PRECONDITION_FAILED) { // Destination path already exists
+                LOGGER.error("error copying resource {}: {} {}", uri, status.getStatusCode(),
+                        status.getReasonPhrase());
+                throw new FedoraException("error copying resource " + uri + ": " + status.getStatusCode() + " " +
+                                     status.getReasonPhrase());
+            } else if (status.getStatusCode() == HttpStatus.SC_BAD_GATEWAY) {
+                // Destination URI isn't a valid resource path
+                LOGGER.error("error copying resource {}: {} {}", uri, status.getStatusCode(),
+                        status.getReasonPhrase());
+                throw new FedoraException("error copying resource " + uri + ": " + status.getStatusCode() + " " +
+                                     status.getReasonPhrase());
+            }
+        } catch (final FedoraException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("could not encode URI parameter", e);
+            throw new FedoraException(e);
+        } finally {
+            copy.releaseConnection();
+        }
     }
 
     @Override
-    public void delete() throws ReadOnlyException {
-        // TODO Auto-generated method stub
-        throw new NotImplemented("Method delete() is not implemented.");
+    public void delete() throws FedoraException {
+        final HttpDelete delete = httpHelper.createDeleteMethod(path);
+
+        try {
+            final HttpResponse response = httpHelper.execute( delete );
+            final StatusLine status = response.getStatusLine();
+            final String uri = delete.getURI().toString();
+
+            if ( status.getStatusCode() == SC_NO_CONTENT) {
+                LOGGER.debug("triples updated successfully for resource {}", uri);
+            } else if ( status.getStatusCode() == SC_NOT_FOUND) {
+                LOGGER.error("resource {} does not exist, cannot update", uri);
+                throw new NotFoundException("resource " + uri + " does not exist, cannot update");
+            } else {
+                LOGGER.error("error updating resource {}: {} {}", uri, status.getStatusCode(),
+                             status.getReasonPhrase());
+                throw new FedoraException("error updating resource " + uri + ": " + status.getStatusCode() + " " +
+                                          status.getReasonPhrase());
+            }
+        } catch (final FedoraException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("Error executing request", e);
+            throw new FedoraException(e);
+        } finally {
+            delete.releaseConnection();
+        }
+    }
+
+    @Override
+    public void forceDelete() throws FedoraException {
+            delete();
+            removeTombstone();
+    }
+
+    /**
+     * Remove tombstone (for the current path)
+     */
+    public void removeTombstone() throws FedoraException {
+        removeTombstone(path);
+    }
+
+
+    /**
+     * Remove tombstone located at given path
+     */
+    public void removeTombstone(final String path) throws FedoraException {
+        final HttpDelete delete = httpHelper.createDeleteMethod(path + "/fcr:tombstone");
+
+        try {
+            final HttpResponse response = httpHelper.execute( delete );
+            final StatusLine status = response.getStatusLine();
+            final String uri = delete.getURI().toString();
+
+            if ( status.getStatusCode() == SC_NO_CONTENT) {
+                LOGGER.debug("triples updated successfully for resource {}", uri);
+            } else if ( status.getStatusCode() == SC_NOT_FOUND) {
+                LOGGER.error("resource {} does not exist, cannot update", uri);
+                throw new NotFoundException("resource " + uri + " does not exist, cannot update");
+            } else {
+                LOGGER.error("error updating resource {}: {} {}", uri, status.getStatusCode(),
+                             status.getReasonPhrase());
+                throw new FedoraException("error updating resource " + uri + ": " + status.getStatusCode() + " " +
+                                          status.getReasonPhrase());
+            }
+        } catch (final FedoraException e) {
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("Error executing request", e);
+            throw new FedoraException(e);
+        } finally {
+            delete.releaseConnection();
+        }
     }
 
     @Override
@@ -160,9 +263,52 @@ public class FedoraResourceImpl implements FedoraResource {
     }
 
     @Override
-    public void move(final String destination) throws ReadOnlyException {
-        // TODO Auto-generated method stub
-        throw new NotImplemented("Method move(final String destination) is not implemented.");
+    public void move(final String destination) throws FedoraException {
+        final HttpMove move = httpHelper.createMoveMethod(path,destination);
+
+        try {
+            final HttpResponse response = httpHelper.execute( move );
+            final StatusLine status = response.getStatusLine();
+            final String uri = move.getURI().toString();
+
+            if (status.getStatusCode() == HttpStatus.SC_CREATED) { // Created
+                LOGGER.debug("resource successfully moved from " + path + " to " + destination, uri);
+                oldPath = path;
+                path = destination;
+                subject = NodeFactory.createURI(repository.getRepositoryUrl() + path);
+            } else if (status.getStatusCode() == HttpStatus.SC_CONFLICT) { // Source path doesn't exists
+                LOGGER.error("error moving resource {}: {} {}", uri, status.getStatusCode(),
+                        status.getReasonPhrase());
+                throw new FedoraException("error moving resource " + uri + ": " + status.getStatusCode() +
+                        " " + status.getReasonPhrase());
+            } else if (status.getStatusCode() == HttpStatus.SC_PRECONDITION_FAILED) {
+                // Destination path already exists
+                LOGGER.error("error moving resource {}: {} {}", uri, status.getStatusCode(),
+                        status.getReasonPhrase());
+                throw new FedoraException("error moving resource " + uri + ": " + status.getStatusCode() + " " +
+                                     status.getReasonPhrase());
+            } else if (status.getStatusCode() == HttpStatus.SC_BAD_GATEWAY) {
+                // Destination URI isn't a valid resource path
+                LOGGER.error("error moving resource {}: {} {}", uri, status.getStatusCode(),
+                        status.getReasonPhrase());
+                throw new FedoraException("error moving resource " + uri + ": " + status.getStatusCode() + " " +
+                                     status.getReasonPhrase());
+            }
+        } catch (final FedoraException e) {
+            oldPath = null;
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error("could not encode URI parameter", e);
+            throw new FedoraException(e);
+        } finally {
+            move.releaseConnection();
+        }
+    }
+
+    @Override
+    public void forceMove(final String destination) throws FedoraException {
+        move(destination);
+        removeTombstone(oldPath);
     }
 
     @Override

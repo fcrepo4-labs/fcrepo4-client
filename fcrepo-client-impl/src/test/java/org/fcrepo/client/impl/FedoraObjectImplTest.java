@@ -80,6 +80,11 @@ public class FedoraObjectImplTest {
     private FedoraObject customChild;
     private FedoraDatastream datastreamChild;
 
+    private static String BINARY = "fedora:Binary";
+    private static String CONTAINER = "fedora:Container";
+    private static String CUSTOM = "fedora:Custom";
+    private static String BOGUS_MIXIN = "bogus:mixin";
+
     @Before
     public void setUp() throws FedoraException {
         initMocks(this);
@@ -94,9 +99,9 @@ public class FedoraObjectImplTest {
         graph.add( create(objectSubj, CONTAINS.asNode(), datastreamChildSubj) );
         graph.add( create(objectSubj, CONTAINS.asNode(), objectChildSubj) );
         graph.add( create(objectSubj, CONTAINS.asNode(), customChildSubj) );
-        graph.add( create(datastreamChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral("fedora:binary")) );
-        graph.add( create(objectChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral("fedora:object")) );
-        graph.add( create(customChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral("fedora:custom")) );
+        graph.add( create(datastreamChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral(BINARY)) );
+        graph.add( create(objectChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral(CONTAINER)) );
+        graph.add( create(customChildSubj, HAS_MIXIN_TYPE.asNode(), createLiteral(CUSTOM)) );
         objectWithChildren.setGraph( graph );
         objectWithoutChildren.setGraph( createDefaultGraph() );
 
@@ -120,7 +125,7 @@ public class FedoraObjectImplTest {
 
     @Test
     public void testGetChildrenObjects() throws FedoraException {
-        final Collection<FedoraResource> children = objectWithChildren.getChildren("fedora:object");
+        final Collection<FedoraResource> children = objectWithChildren.getChildren(CONTAINER);
         verify(mockRepository).getObject(objectChildPath);
         verify(mockRepository, never()).getObject(customChildPath);
         verify(mockRepository, never()).getDatastream(datastreamChildPath);
@@ -131,7 +136,7 @@ public class FedoraObjectImplTest {
 
     @Test
     public void testGetChildrenCustom() throws FedoraException {
-        final Collection<FedoraResource> children = objectWithChildren.getChildren("fedora:custom");
+        final Collection<FedoraResource> children = objectWithChildren.getChildren(CUSTOM);
         verify(mockRepository, never()).getObject(objectChildPath);
         verify(mockRepository).getObject(customChildPath);
         verify(mockRepository, never()).getDatastream(datastreamChildPath);
@@ -142,7 +147,7 @@ public class FedoraObjectImplTest {
 
     @Test
     public void testGetChildrenDatastreams() throws FedoraException {
-        final Collection<FedoraResource> children = objectWithChildren.getChildren("fedora:binary");
+        final Collection<FedoraResource> children = objectWithChildren.getChildren(BINARY);
         verify(mockRepository, never()).getObject(objectChildPath);
         verify(mockRepository, never()).getObject(customChildPath);
         verify(mockRepository).getDatastream(datastreamChildPath);
@@ -161,7 +166,7 @@ public class FedoraObjectImplTest {
 
     @Test
     public void testGetChildrenNoMatch() throws FedoraException {
-        final Collection<FedoraResource> children = objectWithChildren.getChildren("bogus:mixin");
+        final Collection<FedoraResource> children = objectWithChildren.getChildren(BOGUS_MIXIN);
         verify(mockRepository, never()).getObject(anyString());
         verify(mockRepository, never()).getDatastream(anyString());
         assertEquals( 0, children.size() );

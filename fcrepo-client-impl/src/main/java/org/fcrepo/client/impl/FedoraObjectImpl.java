@@ -40,7 +40,7 @@ import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
  * @since 2014-08-11
  */
 public class FedoraObjectImpl extends FedoraResourceImpl implements FedoraObject {
-    private final static Node binaryType = NodeFactory.createLiteral("fedora:binary");
+    private final static Node binaryType = NodeFactory.createLiteral("fedora:Binary");
 
     /**
      * Constructor for FedoraObjectImpl

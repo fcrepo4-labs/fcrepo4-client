@@ -41,6 +41,11 @@ public interface FedoraResource {
     public void delete() throws FedoraException;
 
     /**
+     * Remove this Resource and respective tombstone.
+    **/
+    public void forceDelete() throws FedoraException;
+
+    /**
      * Get the creation date of this Resource.
     **/
     public Date getCreatedDate() throws FedoraException;
@@ -87,6 +92,12 @@ public interface FedoraResource {
     public void move( String destination ) throws FedoraException;
 
     /**
+     * Move this Resource to a new path and removes the tombstone created in the old path.
+     * @param destination The path of the new copy.
+    **/
+    public void forceMove( String destination ) throws FedoraException;
+
+    /**
      * Update the properties of this Resource using SPARQL Update.
      * @param sparqlUpdate SPARQL Update command.
     **/
@@ -113,5 +124,15 @@ public interface FedoraResource {
      *              requirements enforced by the repository).
     **/
     public void createVersionSnapshot( String label ) throws FedoraException;
+
+    /**
+     * Remove tombstone (for the current path)
+     */
+    public void removeTombstone() throws FedoraException;
+
+    /**
+     * Remove tombstone located at given path
+     */
+    public void removeTombstone(final String path) throws FedoraException;
 
 }

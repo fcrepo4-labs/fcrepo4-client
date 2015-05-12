@@ -16,12 +16,14 @@
 package org.fcrepo.client.impl;
 
 import com.hp.hpl.jena.graph.Triple;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.fcrepo.client.AlreadyExistsException;
 import org.fcrepo.client.FedoraContent;
 import org.fcrepo.client.FedoraDatastream;
 import org.fcrepo.client.FedoraException;
@@ -147,7 +149,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                 throw new ForbiddenException("request to create resource " + uri + " is not authorized.");
             } else if (statusCode == SC_CONFLICT) {
                 LOGGER.error("resource {} already exists", uri);
-                throw new FedoraException("resource " + uri + " already exists");
+                throw new AlreadyExistsException("resource " + uri + " already exists");
             } else {
                 LOGGER.error("error creating resource {}: {} {}", uri, statusCode, status.getReasonPhrase());
                 throw new FedoraException("error retrieving resource " + uri + ": " + statusCode + " " +
@@ -206,7 +208,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                 throw new ForbiddenException("request to create resource " + uri + " is not authorized.");
             } else if (statusCode == SC_CONFLICT) {
                 LOGGER.error("resource {} already exists", uri);
-                throw new FedoraException("resource " + uri + " already exists");
+                throw new AlreadyExistsException("resource " + uri + " already exists");
             } else {
                 LOGGER.error("error creating resource {}: {} {}", uri, statusCode, status.getReasonPhrase());
                 throw new FedoraException("error retrieving resource " + uri + ": " + statusCode + " " +

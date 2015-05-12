@@ -50,6 +50,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPatch;
@@ -199,6 +200,15 @@ public class HttpHelper {
     **/
     public HttpGet createGetMethod(final String path, final Map<String, List<String>> params) {
         return new HttpGet(repositoryURL + path + queryString(params));
+    }
+
+    /**
+     * Create DELETE method
+     * @param path Resource path, relative to repository baseURL
+     * @return DELETE method
+    **/
+    public HttpDelete createDeleteMethod(final String path) {
+        return new HttpDelete(repositoryURL + path);
     }
 
     /**
@@ -357,6 +367,26 @@ public class HttpHelper {
         } finally {
             get.releaseConnection();
         }
+    }
+
+    /**
+     * Create COPY method
+     * @param sourcePath Source path, relative to repository baseURL
+     * @param destinationPath Destination path, relative to repository baseURL
+     * @return COPY method
+    **/
+    public HttpCopy createCopyMethod(final String sourcePath, final String destinationPath) {
+        return new HttpCopy(repositoryURL + sourcePath, repositoryURL + destinationPath);
+    }
+
+    /**
+     * Create MOVE method
+     * @param sourcePath Source path, relative to repository baseURL
+     * @param destinationPath Destination path, relative to repository baseURL
+     * @return MOVE method
+    **/
+    public HttpMove createMoveMethod(final String sourcePath, final String destinationPath) {
+        return new HttpMove(repositoryURL + sourcePath, repositoryURL + destinationPath);
     }
 
 }

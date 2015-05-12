@@ -17,14 +17,17 @@ package org.fcrepo.client.impl;
 
 import com.hp.hpl.jena.graph.NodeFactory;
 import com.hp.hpl.jena.graph.Triple;
-import junit.framework.Assert;
+
 import org.apache.commons.io.IOUtils;
 import org.fcrepo.client.FedoraContent;
 import org.fcrepo.client.FedoraDatastream;
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
+import org.fcrepo.client.FedoraResource;
+import org.fcrepo.client.NotFoundException;
 import org.fcrepo.kernel.RdfLexicon;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -33,6 +36,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.UUID;
 
@@ -40,6 +44,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * @author Mike Durbin
+ * @author Hélder Silva
  */
 public class FedoraRepositoryImplIT {
 
@@ -57,7 +62,7 @@ public class FedoraRepositoryImplIT {
 
     @Before
     public void setUp() throws FedoraException {
-        repo = new FedoraRepositoryImpl("http://localhost:" + CARGO_PORT + "/" + FEDORA_CONTEXT + "/rest/");
+        repo = new FedoraRepositoryImpl(getFedoraBaseUrl() + "/rest/");
     }
 
     @Test
@@ -152,6 +157,119 @@ public class FedoraRepositoryImplIT {
         IOUtils.copy(datastream2.getContent(), baos);
         Assert.assertEquals("Second datastream should be a redirect to the first!", value, baos.toString("UTF-8"));
 
+    }
+
+    @Test
+    public void testMoveResource() throws FedoraException {
+        final String originResourcePath = getRandomUniqueId();
+        final String destinyResourcePath = getRandomUniqueId();
+
+        // create origin resource
+        FedoraObject originResource = repo.createObject(originResourcePath);
+        Assert.assertNotNull(originResource);
+        Assert.assertEquals(originResourcePath, originResource.getPath());
+
+        // move resource to another location
+        originResource.move(destinyResourcePath);
+        final FedoraObject destinyResource = repo.getObject(destinyResourcePath);
+        Assert.assertNotNull(destinyResource);
+
+        // try to obtain, from origin, the object that was moved
+        try {
+            originResource = repo.getObject(originResourcePath);
+            Assert.fail("An exception was expected but it didn't happened!");
+        } catch (FedoraException e) {
+            Assert.assertTrue(e.getMessage().contains("410 Gone"));
+        }
+    }
+
+    @Test
+    public void testForceMoveResource() throws FedoraException {
+        final String originResourcePath = getRandomUniqueId();
+        final String destinyResourcePath = getRandomUniqueId();
+
+        // create origin resource
+        FedoraObject originResource = repo.createObject(originResourcePath);
+        Assert.assertNotNull(originResource);
+        Assert.assertEquals(originResourcePath, originResource.getPath());
+
+        // move resource to another location and remove tombstone
+        originResource.forceMove(destinyResourcePath);
+        final FedoraObject destinyResource = repo.getObject(destinyResourcePath);
+        Assert.assertNotNull(destinyResource);
+
+        // try to obtain, from origin, the object that was moved and doesn't have a tombstone because it was removed
+        try {
+            originResource = repo.getObject(originResourcePath);
+            Assert.fail("An exception was expected but it didn't happened!");
+        } catch (FedoraException e) {
+            Assert.assertTrue(e.getClass() == NotFoundException.class);
+        }
+    }
+
+    @Test
+    public void testCopyResource() throws FedoraException {
+        final String originResourcePath = getRandomUniqueId();
+        final String originChildResourcePath = originResourcePath + "/" + getRandomUniqueId();
+        final String destinyResourcePath = getRandomUniqueId();
+
+        // create origin resource
+        FedoraObject originResource = repo.createObject(originResourcePath);
+        Assert.assertNotNull(originResource);
+        Assert.assertEquals(originResourcePath, originResource.getPath());
+
+        // create child origin resource
+        final FedoraObject originChildResource = repo.createObject(originChildResourcePath);
+        Assert.assertNotNull(originChildResource);
+        Assert.assertEquals(originChildResourcePath, originChildResource.getPath());
+
+        // copy resource to another location
+        originResource.copy(destinyResourcePath);
+        final FedoraObject destinyResource = repo.getObject(destinyResourcePath);
+        Assert.assertNotNull(destinyResource);
+        Assert.assertEquals(destinyResourcePath, destinyResource.getPath());
+
+        // ensure that copied resource has the same number of child resources
+        originResource = repo.getObject(originResourcePath);
+        final Collection<FedoraResource> originChildren = originResource.getChildren(null);
+        final Collection<FedoraResource> destinyChildren = destinyResource.getChildren(null);
+        Assert.assertEquals(originChildren.size(),destinyChildren.size());
+    }
+
+    @Test
+    public void testDeleteResource() throws FedoraException {
+        final String resourcePath = getRandomUniqueId();
+        // create resource
+        FedoraObject resource = repo.createObject(resourcePath);
+        Assert.assertNotNull(resource);
+        Assert.assertEquals(resourcePath, resource.getPath());
+
+        // delete resource
+        resource.delete();
+
+        try {
+            resource = repo.getObject(resourcePath);
+        } catch (FedoraException e) {
+            Assert.assertTrue(e.getMessage().contains("410 Gone"));
+        }
+    }
+
+    @Test
+    public void testForceDeleteResource() throws FedoraException {
+        final String resourcePath = getRandomUniqueId();
+        // create resource
+        FedoraObject resource = repo.createObject(resourcePath);
+        Assert.assertNotNull(resource);
+        Assert.assertEquals(resourcePath, resource.getPath());
+
+        // delete resource and remove tombstone
+        resource.forceDelete();
+
+        try {
+            resource = repo.getObject(resourcePath);
+        } catch (FedoraException e) {
+            Assert.assertTrue(e.getClass() == NotFoundException.class);
+        }
     }
 
     private FedoraContent getStringTextContent(final String value) throws UnsupportedEncodingException {
