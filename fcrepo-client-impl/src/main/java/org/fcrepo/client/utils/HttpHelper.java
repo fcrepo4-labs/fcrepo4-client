@@ -140,6 +140,11 @@ public class HttpHelper {
 
     /**
      * Execute a request for a subclass.
+     *
+     * @param request request to be executed
+     * @return response containing response to request
+     * @throws IOException
+     * @throws ReadOnlyException
     **/
     public HttpResponse execute( final HttpUriRequest request ) throws IOException, ReadOnlyException {
         if ( readOnly ) {
@@ -200,6 +205,8 @@ public class HttpHelper {
      * Create a request to update triples with SPARQL Update.
      * @param path The datastream path.
      * @param sparqlUpdate SPARQL Update command.
+     * @return created patch based on parameters
+     * @throws FedoraException
     **/
     public HttpPatch createPatchMethod(final String path, final String sparqlUpdate) throws FedoraException {
         if ( isBlank(sparqlUpdate) ) {
@@ -235,7 +242,9 @@ public class HttpHelper {
     /**
      * Create a request to create/update content.
      * @param path The datastream path.
+     * @param params Mapping of parameters for the PUT request
      * @param content Content parameters.
+     * @return PUT method
     **/
     public HttpPut createContentPutMethod(final String path, final Map<String, List<String>> params,
                                           final FedoraContent content ) {
@@ -270,6 +279,8 @@ public class HttpHelper {
      * @param updatedProperties InputStream containing RDF.
      * @param contentType Content type of the RDF in updatedProperties (e.g., "text/rdf+n3" or
      *        "application/rdf+xml").
+     * @return PUT method
+     * @throws FedoraException
     **/
     public HttpPut createTriplesPutMethod(final String path, final InputStream updatedProperties,
                                           final String contentType) throws FedoraException {
@@ -289,6 +300,7 @@ public class HttpHelper {
      * Retrieve RDF from the repository and update the properties of a resource
      * @param resource The resource to update
      * @return the updated resource
+     * @throws FedoraException
     **/
     public FedoraResourceImpl loadProperties( final FedoraResourceImpl resource ) throws FedoraException {
         final String path = resource.getPropertiesPath();

@@ -41,6 +41,8 @@ public class FedoraContent {
 
     /**
      * Get the content stream.
+     *
+     * @return gets the contents as an input stream
     **/
     public InputStream getContent() {
         return content;
@@ -48,6 +50,8 @@ public class FedoraContent {
 
     /**
      * Get the content type (MIME type) of the content.
+     *
+     * @return string containing the MIME type
     **/
     public String getContentType() {
         return contentType;
@@ -55,6 +59,8 @@ public class FedoraContent {
 
     /**
      * Get the original filename of the content source file.
+     *
+     * @return string containing the filename
     **/
     public String getFilename() {
         return filename;
@@ -63,6 +69,8 @@ public class FedoraContent {
     /**
      * Get the SHA-1 checksum of the content as a URI (e.g.,
      * "{@code urn:sha1:290fa4c6a6161c0941fcaa915e2f96aecc85cd9f}").
+     *
+     * @return uri containing a SHA-1 checksum of the contents
     **/
     public URI getChecksum() {
         return checksum;
@@ -70,6 +78,8 @@ public class FedoraContent {
 
     /**
      * Set the content stream.
+     *
+     * @param content set the content to the given input stream
      * @return The updated object for chaining.
     **/
     public FedoraContent setContent( final InputStream content ) {
@@ -79,6 +89,8 @@ public class FedoraContent {
 
     /**
      * Set the content type (MIME type) of the content.
+     *
+     * @param contentType string containing the content type
      * @return The updated object for chaining.
     **/
     public FedoraContent setContentType( final String contentType ) {
@@ -88,6 +100,8 @@ public class FedoraContent {
 
     /**
      * Set the filename of the content source file.
+     *
+     * @param filename string containing the filename
      * @return The updated object for chaining.
     **/
     public FedoraContent setFilename( final String filename ) {
@@ -98,6 +112,8 @@ public class FedoraContent {
     /**
      * Set the checksum of the content as a URI (e.g.,
      * "{@code urn:sha1:290fa4c6a6161c0941fcaa915e2f96aecc85cd9f}").
+     *
+     * @param checksum uri containing SHA-1 checksum of contents
      * @return The updated object for chaining.
     **/
     public FedoraContent setChecksum( final URI checksum ) {

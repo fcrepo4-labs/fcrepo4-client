@@ -63,7 +63,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * HttpHelper test
  * @author escowles
- * @sincd 2014-09-04
+ * @since 2014-09-04
  */
 public class HttpHelperTest {
 

@@ -121,7 +121,7 @@ public class FedoraResourceImpl implements FedoraResource {
     /**
      * set etagValue
      *
-     * @param etagValue
+     * @param etagValue string of etagvalue to set
      */
     public void setEtagValue(final String etagValue) {
         this.etagValue = etagValue;
@@ -302,6 +302,8 @@ public class FedoraResourceImpl implements FedoraResource {
 
     /**
      * Update the properties graph
+     *
+     * @param graph graph to  add to this object
     **/
     public void setGraph( final Graph graph ) {
         this.graph = graph;
@@ -360,6 +362,8 @@ public class FedoraResourceImpl implements FedoraResource {
 
     /**
      * Gets the path to which properties of this resource may be accessed.
+     *
+     * @return string containing properties path
      */
     public String getPropertiesPath() {
         return path;
