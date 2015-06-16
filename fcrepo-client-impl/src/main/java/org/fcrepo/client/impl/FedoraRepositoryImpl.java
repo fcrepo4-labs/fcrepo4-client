@@ -20,6 +20,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.fcrepo.client.FedoraContent;
 import org.fcrepo.client.FedoraDatastream;
@@ -216,6 +217,33 @@ public class FedoraRepositoryImpl implements FedoraRepository {
             throw new FedoraException(e);
         } finally {
             put.releaseConnection();
+        }
+    }
+
+    @Override
+    public FedoraObject createResource(final String containerPath) throws FedoraException {
+        final HttpPost post = httpHelper.createPostMethod(containerPath == null ? "" : containerPath, null);
+        try {
+            final HttpResponse response = httpHelper.execute(post);
+            final String uri = post.getURI().toString();
+            final StatusLine status = response.getStatusLine();
+            final int statusCode = status.getStatusCode();
+
+            if (statusCode == SC_CREATED) {
+                return getObject(response.getFirstHeader("Location").getValue().substring(repositoryURL.length()));
+            } else if (statusCode == SC_FORBIDDEN) {
+                LOGGER.error("request to create resource {} is not authorized.", uri);
+                throw new ForbiddenException("request to create resource " + uri + " is not authorized.");
+            } else {
+                LOGGER.error("error creating resource {}: {} {}", uri, statusCode, status.getReasonPhrase());
+                throw new FedoraException("error creating resource " + uri + ": " + statusCode + " " +
+                        status.getReasonPhrase());
+            }
+        } catch (final Exception e) {
+            LOGGER.error("could not encode URI parameter", e);
+            throw new FedoraException(e);
+        } finally {
+            post.releaseConnection();
         }
     }
 

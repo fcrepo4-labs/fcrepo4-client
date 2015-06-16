@@ -78,6 +78,26 @@ public class FedoraRepositoryImplIT {
     }
 
     @Test
+    public void testPidMintedResourceCreation() throws IOException, FedoraException {
+        final FedoraObject object = repo.createResource("");
+        Assert.assertTrue("A newly created object should exist at the path given by the createObject() call.",
+                repo.exists(object.getPath()));
+
+        final FedoraObject containedObject = object.createObject();
+        Assert.assertTrue("A newly created object should exist at the path given by the createObject() call.",
+                repo.exists(containedObject.getPath()));
+        Assert.assertTrue("The new object's path should start with the containing object's path.",
+                containedObject.getPath().startsWith(object.getPath()));
+    }
+
+    @Test
+    public void testPidMintedResourceCreationWithNullArgument() throws IOException, FedoraException {
+        final FedoraObject object = repo.createResource(null);
+        Assert.assertTrue("A newly created object should exist at the path given by the createObject() call.",
+                repo.exists(object.getPath()));
+    }
+
+    @Test
     public void testBasicPropertiesCreation() throws IOException, FedoraException {
         final String objectPath = getRandomUniqueId();
         final FedoraObject object = repo.createObject(objectPath);

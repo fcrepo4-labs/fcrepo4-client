@@ -72,6 +72,16 @@ public interface FedoraRepository {
     public FedoraObject createObject( String path ) throws FedoraException;
 
     /**
+     * Create a new Object with a repository-supplied path that is within the container
+     * at the provided containerPath.
+     * @param containerPath the path to a container in which this resource will be created.  An
+     *                      empty String or null will create a new resource at the root level.
+     * @return a FedoraObject representing the created resource.
+     * @throws FedoraException if an error occurs while making the requests against the repository.
+     **/
+    public FedoraObject createResource(String containerPath) throws FedoraException;
+
+    /**
      * Get an existing Datastream if it exists, otherwise create a new Datastream.
      * @param path The Datastream path.
     **/

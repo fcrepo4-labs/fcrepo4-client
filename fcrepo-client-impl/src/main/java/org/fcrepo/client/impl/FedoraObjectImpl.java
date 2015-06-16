@@ -15,23 +15,22 @@
  */
 package org.fcrepo.client.impl;
 
-import static org.fcrepo.kernel.RdfLexicon.CONTAINS;
-import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.graph.NodeFactory;
 import com.hp.hpl.jena.graph.Triple;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
-
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
 import org.fcrepo.client.utils.HttpHelper;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.fcrepo.kernel.RdfLexicon.CONTAINS;
+import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
 
 /**
  * A Fedora Object Impl.
@@ -79,5 +78,10 @@ public class FedoraObjectImpl extends FedoraResourceImpl implements FedoraObject
             }
         }
         return set;
+    }
+
+    @Override
+    public FedoraObject createObject() throws FedoraException {
+        return repository.createResource(getPath());
     }
 }
