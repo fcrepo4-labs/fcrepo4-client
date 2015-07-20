@@ -26,14 +26,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static org.fcrepo.kernel.RdfLexicon.CREATED_DATE;
-import static org.fcrepo.kernel.RdfLexicon.LAST_MODIFIED_DATE;
-import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
-import static org.fcrepo.kernel.RdfLexicon.WRITABLE;
-import static org.fcrepo.kernel.RdfLexicon.DESCRIBES;
-import static org.fcrepo.kernel.RdfLexicon.HAS_SIZE;
-import static org.fcrepo.kernel.RdfLexicon.HAS_MIME_TYPE;
-import static org.fcrepo.kernel.RdfLexicon.HAS_ORIGINAL_NAME;
+import static org.fcrepo.kernel.api.RdfLexicon.CREATED_DATE;
+import static org.fcrepo.kernel.api.RdfLexicon.LAST_MODIFIED_DATE;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_MIXIN_TYPE;
+import static org.fcrepo.kernel.api.RdfLexicon.WRITABLE;
+import static org.fcrepo.kernel.api.RdfLexicon.DESCRIBES;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_SIZE;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_MIME_TYPE;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_ORIGINAL_NAME;
 import static org.fcrepo.client.impl.FedoraDatastreamImpl.REST_API_DIGEST;
 
 import static org.junit.Assert.assertTrue;
@@ -66,7 +66,7 @@ import org.fcrepo.client.FedoraContent;
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.utils.HttpHelper;
-import org.fcrepo.kernel.RdfLexicon;
+import org.fcrepo.kernel.api.RdfLexicon;
 
 import org.junit.Before;
 import org.junit.Test;

@@ -29,8 +29,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.fcrepo.kernel.RdfLexicon.CONTAINS;
-import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
+import static org.fcrepo.kernel.api.RdfLexicon.CONTAINS;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_MIXIN_TYPE;
 
 /**
  * A Fedora Object Impl.

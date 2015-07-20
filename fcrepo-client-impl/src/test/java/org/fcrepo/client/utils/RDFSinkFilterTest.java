@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.fcrepo.client.FedoraException;
-import org.fcrepo.kernel.RdfLexicon;
+import org.fcrepo.kernel.api.RdfLexicon;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;

@@ -26,7 +26,7 @@ import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
 import org.fcrepo.client.NotFoundException;
-import org.fcrepo.kernel.RdfLexicon;
+import org.fcrepo.kernel.api.RdfLexicon;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
