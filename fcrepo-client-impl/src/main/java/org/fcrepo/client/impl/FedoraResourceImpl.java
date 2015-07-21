@@ -46,7 +46,7 @@ import org.fcrepo.client.NotFoundException;
 import org.fcrepo.client.utils.HttpCopy;
 import org.fcrepo.client.utils.HttpHelper;
 import org.fcrepo.client.utils.HttpMove;
-import org.fcrepo.kernel.RdfLexicon;
+import org.fcrepo.kernel.api.RdfLexicon;
 import org.slf4j.Logger;
 
 import com.hp.hpl.jena.graph.Graph;

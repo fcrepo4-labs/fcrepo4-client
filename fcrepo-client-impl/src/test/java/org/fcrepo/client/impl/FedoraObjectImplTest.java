@@ -26,8 +26,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static org.fcrepo.kernel.RdfLexicon.CONTAINS;
-import static org.fcrepo.kernel.RdfLexicon.HAS_MIXIN_TYPE;
+import static org.fcrepo.kernel.api.RdfLexicon.CONTAINS;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_MIXIN_TYPE;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

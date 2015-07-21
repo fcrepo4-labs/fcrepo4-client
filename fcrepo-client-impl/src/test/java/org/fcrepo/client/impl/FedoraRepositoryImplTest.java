@@ -20,7 +20,7 @@ import static com.hp.hpl.jena.graph.NodeFactory.createURI;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.apache.http.HttpStatus.SC_OK;
-import static org.fcrepo.kernel.RdfLexicon.HAS_PRIMARY_IDENTIFIER;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_PRIMARY_IDENTIFIER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

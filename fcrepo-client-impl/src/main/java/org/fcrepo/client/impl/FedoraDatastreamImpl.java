@@ -24,11 +24,11 @@ import static org.apache.http.HttpStatus.SC_OK;
 
 import static com.hp.hpl.jena.rdf.model.ResourceFactory.createProperty;
 
-import static org.fcrepo.kernel.RdfLexicon.DESCRIBES;
-import static org.fcrepo.kernel.RdfLexicon.HAS_ORIGINAL_NAME;
-import static org.fcrepo.kernel.RdfLexicon.HAS_MIME_TYPE;
-import static org.fcrepo.kernel.RdfLexicon.HAS_SIZE;
-import static org.fcrepo.kernel.RdfLexicon.REPOSITORY_NAMESPACE;
+import static org.fcrepo.kernel.api.RdfLexicon.DESCRIBES;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_ORIGINAL_NAME;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_MIME_TYPE;
+import static org.fcrepo.kernel.api.RdfLexicon.HAS_SIZE;
+import static org.fcrepo.kernel.api.RdfLexicon.REPOSITORY_NAMESPACE;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -59,7 +59,7 @@ import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.utils.HttpHelper;
 
-import org.fcrepo.kernel.FedoraJcrTypes;
+import org.fcrepo.kernel.api.FedoraJcrTypes;
 import org.slf4j.Logger;
 
 /**

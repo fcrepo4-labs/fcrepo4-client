@@ -40,7 +40,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.fcrepo.client.FedoraException;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.utils.HttpHelper;
-import org.fcrepo.kernel.RdfLexicon;
+import org.fcrepo.kernel.api.RdfLexicon;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
