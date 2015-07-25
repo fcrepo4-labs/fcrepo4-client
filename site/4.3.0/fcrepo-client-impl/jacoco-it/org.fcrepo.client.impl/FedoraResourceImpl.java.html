@@ -1,0 +1,519 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>FedoraResourceImpl.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Fedora Repository Java Client API Impl</a> &gt; <a href="index.source.html" class="el_package">org.fcrepo.client.impl</a> &gt; <span class="el_source">FedoraResourceImpl.java</span></div><h1>FedoraResourceImpl.java</h1><pre class="source lang-java linenums">/**
+ * Copyright 2015 DuraSpace, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.fcrepo.client.impl;
+
+import static org.apache.http.HttpStatus.SC_CONFLICT;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_NO_CONTENT;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+import static org.slf4j.LoggerFactory.getLogger;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.fcrepo.client.FedoraException;
+import org.fcrepo.client.FedoraRepository;
+import org.fcrepo.client.FedoraResource;
+import org.fcrepo.client.ForbiddenException;
+import org.fcrepo.client.NotFoundException;
+import org.fcrepo.client.utils.HttpCopy;
+import org.fcrepo.client.utils.HttpHelper;
+import org.fcrepo.client.utils.HttpMove;
+import org.fcrepo.kernel.api.RdfLexicon;
+import org.slf4j.Logger;
+
+import com.hp.hpl.jena.graph.Graph;
+import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.graph.NodeFactory;
+import com.hp.hpl.jena.graph.Triple;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.util.iterator.ExtendedIterator;
+
+/**
+ * A Fedora Object Impl.
+ *
+ * @author lsitu
+ * @author escowles
+ * @since 2014-08-11
+ */
+public class FedoraResourceImpl implements FedoraResource {
+<span class="fc" id="L67">    private static final Logger LOGGER = getLogger(FedoraResourceImpl.class);</span>
+
+<span class="fc" id="L69">    private static SimpleDateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd'T'HH:mm:ss.SSS'Z'&quot;);</span>
+
+<span class="fc" id="L71">    protected FedoraRepository repository = null;</span>
+
+<span class="fc" id="L73">    protected HttpHelper httpHelper = null;</span>
+
+<span class="fc" id="L75">    protected String path = null;</span>
+
+<span class="fc" id="L77">    protected String oldPath = null;</span>
+
+<span class="fc" id="L79">    protected Node subject = null;</span>
+
+    protected Graph graph;
+
+<span class="fc" id="L83">    private String etagValue = null;</span>
+
+    /**
+     * FedoraResourceImpl constructor
+     *
+     * @param repository FedoraRepositoryImpl that created this resource
+     * @param httpHelper HTTP helper for making repository requests
+     * @param path Repository path of this resource
+     */
+<span class="fc" id="L92">    public FedoraResourceImpl(final FedoraRepository repository, final HttpHelper httpHelper, final String path) {</span>
+<span class="fc" id="L93">        this.repository = repository;</span>
+<span class="fc" id="L94">        this.httpHelper = httpHelper;</span>
+<span class="fc" id="L95">        this.path = path;</span>
+<span class="fc" id="L96">        subject = NodeFactory.createURI(repository.getRepositoryUrl() + path);</span>
+<span class="fc" id="L97">    }</span>
+
+    @Override
+    public void copy(final String destination) throws FedoraException {
+
+<span class="fc" id="L102">        final HttpCopy copy = httpHelper.createCopyMethod(path,destination);</span>
+
+        try {
+<span class="fc" id="L105">            final HttpResponse response = httpHelper.execute( copy );</span>
+<span class="fc" id="L106">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L107">            final String uri = copy.getURI().toString();</span>
+
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">            if (status.getStatusCode() == HttpStatus.SC_CREATED) { // Created</span>
+<span class="fc" id="L110">                 LOGGER.debug(&quot;resource successfully copied from &quot; + path + &quot; to &quot; + destination, uri);</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            } else if (status.getStatusCode() == HttpStatus.SC_CONFLICT) { // Source path doesn't exists</span>
+<span class="nc" id="L112">                LOGGER.error(&quot;error copying resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L113">                        status.getReasonPhrase());</span>
+<span class="nc" id="L114">                throw new FedoraException(&quot;error copying resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L115">                                     status.getReasonPhrase());</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">            } else if (status.getStatusCode() == HttpStatus.SC_PRECONDITION_FAILED) { // Destination path already exists</span>
+<span class="nc" id="L117">                LOGGER.error(&quot;error copying resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L118">                        status.getReasonPhrase());</span>
+<span class="nc" id="L119">                throw new FedoraException(&quot;error copying resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L120">                                     status.getReasonPhrase());</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">            } else if (status.getStatusCode() == HttpStatus.SC_BAD_GATEWAY) {</span>
+                // Destination URI isn't a valid resource path
+<span class="nc" id="L123">                LOGGER.error(&quot;error copying resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L124">                        status.getReasonPhrase());</span>
+<span class="nc" id="L125">                throw new FedoraException(&quot;error copying resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L126">                                     status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L128">        } catch (final FedoraException e) {</span>
+<span class="nc" id="L129">            throw e;</span>
+<span class="nc" id="L130">        } catch (final Exception e) {</span>
+<span class="nc" id="L131">            LOGGER.error(&quot;could not encode URI parameter&quot;, e);</span>
+<span class="nc" id="L132">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L134">            copy.releaseConnection();</span>
+<span class="fc" id="L135">        }</span>
+<span class="fc" id="L136">    }</span>
+
+    @Override
+    public void delete() throws FedoraException {
+<span class="fc" id="L140">        final HttpDelete delete = httpHelper.createDeleteMethod(path);</span>
+
+        try {
+<span class="fc" id="L143">            final HttpResponse response = httpHelper.execute( delete );</span>
+<span class="fc" id="L144">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L145">            final String uri = delete.getURI().toString();</span>
+
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">            if ( status.getStatusCode() == SC_NO_CONTENT) {</span>
+<span class="fc" id="L148">                LOGGER.debug(&quot;triples updated successfully for resource {}&quot;, uri);</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_NOT_FOUND) {</span>
+<span class="nc" id="L150">                LOGGER.error(&quot;resource {} does not exist, cannot update&quot;, uri);</span>
+<span class="nc" id="L151">                throw new NotFoundException(&quot;resource &quot; + uri + &quot; does not exist, cannot update&quot;);</span>
+            } else {
+<span class="nc" id="L153">                LOGGER.error(&quot;error updating resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L154">                             status.getReasonPhrase());</span>
+<span class="nc" id="L155">                throw new FedoraException(&quot;error updating resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L156">                                          status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L158">        } catch (final FedoraException e) {</span>
+<span class="nc" id="L159">            throw e;</span>
+<span class="nc" id="L160">        } catch (final Exception e) {</span>
+<span class="nc" id="L161">            LOGGER.error(&quot;Error executing request&quot;, e);</span>
+<span class="nc" id="L162">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L164">            delete.releaseConnection();</span>
+<span class="fc" id="L165">        }</span>
+<span class="fc" id="L166">    }</span>
+
+    @Override
+    public void forceDelete() throws FedoraException {
+<span class="fc" id="L170">            delete();</span>
+<span class="fc" id="L171">            removeTombstone();</span>
+<span class="fc" id="L172">    }</span>
+
+    /**
+     * Remove tombstone (for the current path)
+     */
+    public void removeTombstone() throws FedoraException {
+<span class="fc" id="L178">        removeTombstone(path);</span>
+<span class="fc" id="L179">    }</span>
+
+
+    /**
+     * Remove tombstone located at given path
+     */
+    public void removeTombstone(final String path) throws FedoraException {
+<span class="fc" id="L186">        final HttpDelete delete = httpHelper.createDeleteMethod(path + &quot;/fcr:tombstone&quot;);</span>
+
+        try {
+<span class="fc" id="L189">            final HttpResponse response = httpHelper.execute( delete );</span>
+<span class="fc" id="L190">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L191">            final String uri = delete.getURI().toString();</span>
+
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">            if ( status.getStatusCode() == SC_NO_CONTENT) {</span>
+<span class="fc" id="L194">                LOGGER.debug(&quot;triples updated successfully for resource {}&quot;, uri);</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_NOT_FOUND) {</span>
+<span class="nc" id="L196">                LOGGER.error(&quot;resource {} does not exist, cannot update&quot;, uri);</span>
+<span class="nc" id="L197">                throw new NotFoundException(&quot;resource &quot; + uri + &quot; does not exist, cannot update&quot;);</span>
+            } else {
+<span class="nc" id="L199">                LOGGER.error(&quot;error updating resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L200">                             status.getReasonPhrase());</span>
+<span class="nc" id="L201">                throw new FedoraException(&quot;error updating resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L202">                                          status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L204">        } catch (final FedoraException e) {</span>
+<span class="nc" id="L205">            throw e;</span>
+<span class="nc" id="L206">        } catch (final Exception e) {</span>
+<span class="nc" id="L207">            LOGGER.error(&quot;Error executing request&quot;, e);</span>
+<span class="nc" id="L208">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L210">            delete.releaseConnection();</span>
+<span class="fc" id="L211">        }</span>
+<span class="fc" id="L212">    }</span>
+
+    @Override
+    public Date getCreatedDate() {
+<span class="nc" id="L216">        return getDate(RdfLexicon.CREATED_DATE);</span>
+    }
+
+    @Override
+    public String getEtagValue() {
+<span class="nc" id="L221">        return etagValue;</span>
+    }
+
+    /**
+     * set etagValue
+     *
+     * @param etagValue string of etagvalue to set
+     */
+    public void setEtagValue(final String etagValue) {
+<span class="fc" id="L230">        this.etagValue = etagValue;</span>
+<span class="fc" id="L231">    }</span>
+
+    @Override
+    public Date getLastModifiedDate() {
+<span class="nc" id="L235">        return getDate(RdfLexicon.LAST_MODIFIED_DATE);</span>
+    }
+
+    @Override
+    public Collection&lt;String&gt; getMixins() {
+<span class="nc" id="L240">        return getPropertyValues(RdfLexicon.HAS_MIXIN_TYPE);</span>
+    }
+
+    @Override
+    public String getName() {
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        final String p = path.endsWith(&quot;/&quot;) ? path.substring(0, path.length() - 1) : path;</span>
+<span class="nc" id="L246">        final String[] paths = p.split(&quot;/&quot;);</span>
+<span class="nc" id="L247">        return paths[paths.length - 1];</span>
+    }
+
+    @Override
+    public String getPath() {
+<span class="fc" id="L252">        return path;</span>
+    }
+
+    @Override
+    public Iterator&lt;Triple&gt; getProperties() {
+<span class="fc" id="L257">        return graph.find(Node.ANY, Node.ANY, Node.ANY);</span>
+    }
+
+    @Override
+    public Long getSize() {
+<span class="nc" id="L262">        return (long) graph.size();</span>
+    }
+
+    @Override
+    public void move(final String destination) throws FedoraException {
+<span class="fc" id="L267">        final HttpMove move = httpHelper.createMoveMethod(path,destination);</span>
+
+        try {
+<span class="fc" id="L270">            final HttpResponse response = httpHelper.execute( move );</span>
+<span class="fc" id="L271">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L272">            final String uri = move.getURI().toString();</span>
+
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">            if (status.getStatusCode() == HttpStatus.SC_CREATED) { // Created</span>
+<span class="fc" id="L275">                LOGGER.debug(&quot;resource successfully moved from &quot; + path + &quot; to &quot; + destination, uri);</span>
+<span class="fc" id="L276">                oldPath = path;</span>
+<span class="fc" id="L277">                path = destination;</span>
+<span class="fc" id="L278">                subject = NodeFactory.createURI(repository.getRepositoryUrl() + path);</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">            } else if (status.getStatusCode() == HttpStatus.SC_CONFLICT) { // Source path doesn't exists</span>
+<span class="nc" id="L280">                LOGGER.error(&quot;error moving resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L281">                        status.getReasonPhrase());</span>
+<span class="nc" id="L282">                throw new FedoraException(&quot;error moving resource &quot; + uri + &quot;: &quot; + status.getStatusCode() +</span>
+<span class="nc" id="L283">                        &quot; &quot; + status.getReasonPhrase());</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">            } else if (status.getStatusCode() == HttpStatus.SC_PRECONDITION_FAILED) {</span>
+                // Destination path already exists
+<span class="nc" id="L286">                LOGGER.error(&quot;error moving resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L287">                        status.getReasonPhrase());</span>
+<span class="nc" id="L288">                throw new FedoraException(&quot;error moving resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L289">                                     status.getReasonPhrase());</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">            } else if (status.getStatusCode() == HttpStatus.SC_BAD_GATEWAY) {</span>
+                // Destination URI isn't a valid resource path
+<span class="nc" id="L292">                LOGGER.error(&quot;error moving resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L293">                        status.getReasonPhrase());</span>
+<span class="nc" id="L294">                throw new FedoraException(&quot;error moving resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L295">                                     status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L297">        } catch (final FedoraException e) {</span>
+<span class="nc" id="L298">            oldPath = null;</span>
+<span class="nc" id="L299">            throw e;</span>
+<span class="nc" id="L300">        } catch (final Exception e) {</span>
+<span class="nc" id="L301">            LOGGER.error(&quot;could not encode URI parameter&quot;, e);</span>
+<span class="nc" id="L302">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L304">            move.releaseConnection();</span>
+<span class="fc" id="L305">        }</span>
+<span class="fc" id="L306">    }</span>
+
+    @Override
+    public void forceMove(final String destination) throws FedoraException {
+<span class="fc" id="L310">        move(destination);</span>
+<span class="fc" id="L311">        removeTombstone(oldPath);</span>
+<span class="fc" id="L312">    }</span>
+
+    @Override
+    public void updateProperties(final String sparqlUpdate) throws FedoraException {
+<span class="fc" id="L316">        final HttpPatch patch = httpHelper.createPatchMethod(getPropertiesPath(), sparqlUpdate);</span>
+
+        try {
+<span class="fc" id="L319">            final HttpResponse response = httpHelper.execute( patch );</span>
+<span class="fc" id="L320">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L321">            final String uri = patch.getURI().toString();</span>
+
+<span class="pc bpc" id="L323" title="1 of 2 branches missed.">            if ( status.getStatusCode() == SC_NO_CONTENT) {</span>
+<span class="fc" id="L324">                LOGGER.debug(&quot;triples updated successfully for resource {}&quot;, uri);</span>
+<span class="nc bnc" id="L325" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_FORBIDDEN) {</span>
+<span class="nc" id="L326">                LOGGER.error(&quot;updating resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L327">                throw new ForbiddenException(&quot;updating resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_NOT_FOUND) {</span>
+<span class="nc" id="L329">                LOGGER.error(&quot;resource {} does not exist, cannot update&quot;, uri);</span>
+<span class="nc" id="L330">                throw new NotFoundException(&quot;resource &quot; + uri + &quot; does not exist, cannot update&quot;);</span>
+<span class="nc bnc" id="L331" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_CONFLICT) {</span>
+<span class="nc" id="L332">                LOGGER.error(&quot;resource {} is locked&quot;, uri);</span>
+<span class="nc" id="L333">                throw new FedoraException(&quot;resource is locked: &quot; + uri);</span>
+            } else {
+<span class="nc" id="L335">                LOGGER.error(&quot;error updating resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L336">                             status.getReasonPhrase());</span>
+<span class="nc" id="L337">                throw new FedoraException(&quot;error updating resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L338">                                          status.getReasonPhrase());</span>
+            }
+
+            // update properties from server
+<span class="fc" id="L342">            httpHelper.loadProperties(this);</span>
+
+<span class="nc" id="L344">        } catch (final FedoraException e) {</span>
+<span class="nc" id="L345">            throw e;</span>
+<span class="nc" id="L346">        } catch (final Exception e) {</span>
+<span class="nc" id="L347">            LOGGER.error(&quot;could not encode URI parameter&quot;, e);</span>
+<span class="nc" id="L348">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L350">            patch.releaseConnection();</span>
+<span class="fc" id="L351">        }</span>
+<span class="fc" id="L352">    }</span>
+
+    @Override
+    public void updateProperties(final InputStream updatedProperties, final String contentType)
+            throws FedoraException {
+
+<span class="nc" id="L358">        final HttpPut put = httpHelper.createTriplesPutMethod(getPropertiesPath(), updatedProperties, contentType);</span>
+
+        try {
+<span class="nc" id="L361">            final HttpResponse response = httpHelper.execute( put );</span>
+<span class="nc" id="L362">            final StatusLine status = response.getStatusLine();</span>
+<span class="nc" id="L363">            final String uri = put.getURI().toString();</span>
+
+<span class="nc bnc" id="L365" title="All 2 branches missed.">            if ( status.getStatusCode() == SC_NO_CONTENT) {</span>
+<span class="nc" id="L366">                LOGGER.debug(&quot;triples updated successfully for resource {}&quot;, uri);</span>
+<span class="nc bnc" id="L367" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_FORBIDDEN) {</span>
+<span class="nc" id="L368">                LOGGER.error(&quot;updating resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L369">                throw new ForbiddenException(&quot;updating resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_NOT_FOUND) {</span>
+<span class="nc" id="L371">                LOGGER.error(&quot;resource {} does not exist, cannot update&quot;, uri);</span>
+<span class="nc" id="L372">                throw new NotFoundException(&quot;resource &quot; + uri + &quot; does not exist, cannot update&quot;);</span>
+<span class="nc bnc" id="L373" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_CONFLICT) {</span>
+<span class="nc" id="L374">                LOGGER.error(&quot;resource {} is locked&quot;, uri);</span>
+<span class="nc" id="L375">                throw new FedoraException(&quot;resource is locked: &quot; + uri);</span>
+            } else {
+<span class="nc" id="L377">                LOGGER.error(&quot;error updating resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L378">                             status.getReasonPhrase());</span>
+<span class="nc" id="L379">                throw new FedoraException(&quot;error updating resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L380">                                          status.getReasonPhrase());</span>
+            }
+
+            // update properties from server
+<span class="nc" id="L384">            httpHelper.loadProperties(this);</span>
+
+<span class="nc" id="L386">        } catch (final FedoraException e) {</span>
+<span class="nc" id="L387">            throw e;</span>
+<span class="nc" id="L388">        } catch (final Exception e) {</span>
+<span class="nc" id="L389">            LOGGER.error(&quot;Error executing request&quot;, e);</span>
+<span class="nc" id="L390">            throw new FedoraException(e);</span>
+        } finally {
+<span class="nc" id="L392">            put.releaseConnection();</span>
+<span class="nc" id="L393">        }</span>
+<span class="nc" id="L394">    }</span>
+
+    @Override
+    public boolean isWritable() {
+<span class="nc" id="L398">        final Collection&lt;String&gt; values = getPropertyValues(RdfLexicon.WRITABLE);</span>
+<span class="nc bnc" id="L399" title="All 4 branches missed.">        if (values != null &amp;&amp; values.size() &gt; 0) {</span>
+<span class="nc" id="L400">            final Iterator&lt;String&gt; it = values.iterator();</span>
+<span class="nc" id="L401">            return Boolean.parseBoolean(it.next());</span>
+        }
+<span class="nc" id="L403">        return false;</span>
+    }
+
+    @Override
+    public void createVersionSnapshot(final String label) throws FedoraException {
+<span class="nc" id="L408">        final HttpPost postVersion = httpHelper.createPostMethod(path + &quot;/fcr:versions&quot;, null);</span>
+        try {
+<span class="nc" id="L410">            postVersion.setHeader(&quot;Slug&quot;, label);</span>
+<span class="nc" id="L411">            final HttpResponse response = httpHelper.execute(postVersion);</span>
+<span class="nc" id="L412">            final StatusLine status = response.getStatusLine();</span>
+<span class="nc" id="L413">            final String uri = postVersion.getURI().toString();</span>
+
+<span class="nc bnc" id="L415" title="All 2 branches missed.">            if ( status.getStatusCode() == SC_NO_CONTENT) {</span>
+<span class="nc" id="L416">                LOGGER.debug(&quot;new version created for resource at {}&quot;, uri);</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_CONFLICT) {</span>
+<span class="nc" id="L418">                LOGGER.debug(&quot;The label {} is in use by another version.&quot;, label);</span>
+<span class="nc" id="L419">                throw new FedoraException(&quot;The label \&quot;&quot; + label + &quot;\&quot; is in use by another version.&quot;);</span>
+<span class="nc bnc" id="L420" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_FORBIDDEN) {</span>
+<span class="nc" id="L421">                LOGGER.error(&quot;updating resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L422">                throw new ForbiddenException(&quot;updating resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+<span class="nc bnc" id="L423" title="All 2 branches missed.">            } else if ( status.getStatusCode() == SC_NOT_FOUND) {</span>
+<span class="nc" id="L424">                LOGGER.error(&quot;resource {} does not exist, cannot create version&quot;, uri);</span>
+<span class="nc" id="L425">                throw new NotFoundException(&quot;resource &quot; + uri + &quot; does not exist, cannot create version&quot;);</span>
+            } else {
+<span class="nc" id="L427">                LOGGER.error(&quot;error updating resource {}: {} {}&quot;, uri, status.getStatusCode(),</span>
+<span class="nc" id="L428">                        status.getReasonPhrase());</span>
+<span class="nc" id="L429">                throw new FedoraException(&quot;error updating resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot; +</span>
+<span class="nc" id="L430">                        status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L432">        } catch (IOException e) {</span>
+<span class="nc" id="L433">            LOGGER.error(&quot;Error executing request&quot;, e);</span>
+<span class="nc" id="L434">            throw new FedoraException(e);</span>
+        } finally {
+<span class="nc" id="L436">            postVersion.releaseConnection();</span>
+<span class="nc" id="L437">        }</span>
+<span class="nc" id="L438">    }</span>
+
+    /**
+     * Get the properties graph
+     *
+     * @return Graph containing properties for this resource
+     */
+    public Graph getGraph() {
+<span class="nc" id="L446">        return graph;</span>
+    }
+
+    /**
+     * Update the properties graph
+     *
+     * @param graph graph to  add to this object
+    **/
+    public void setGraph( final Graph graph ) {
+<span class="fc" id="L455">        this.graph = graph;</span>
+<span class="fc" id="L456">    }</span>
+
+    private Date getDate(final Property property) {
+<span class="nc" id="L459">        Date date = null;</span>
+<span class="nc" id="L460">        final Triple t = getTriple(subject, property);</span>
+<span class="nc bnc" id="L461" title="All 2 branches missed.">        if ( t != null ) {</span>
+<span class="nc" id="L462">            final String dateValue = t.getObject().getLiteralValue().toString();</span>
+            try {
+<span class="nc" id="L464">                date = dateFormat.parse(dateValue);</span>
+<span class="nc" id="L465">            } catch (final ParseException e) {</span>
+<span class="nc" id="L466">                LOGGER.debug(&quot;Invalid date format error: &quot; + dateValue);</span>
+<span class="nc" id="L467">            }</span>
+        }
+<span class="nc" id="L469">        return date;</span>
+    }
+
+    /**
+     * Return all the values of a property
+     *
+     * @param property The Property to get values for
+     * @return Collection of values
+     */
+    protected Collection&lt;String&gt; getPropertyValues(final Property property) {
+<span class="nc" id="L479">        final ExtendedIterator&lt;Triple&gt; iterator = graph.find(Node.ANY,</span>
+<span class="nc" id="L480">                                                             property.asNode(),</span>
+                                                             Node.ANY);
+<span class="nc" id="L482">        final Set&lt;String&gt; set = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L483" title="All 2 branches missed.">        while (iterator.hasNext()) {</span>
+<span class="nc" id="L484">            final Node object = iterator.next().getObject();</span>
+<span class="nc bnc" id="L485" title="All 2 branches missed.">            if (object.isLiteral()) {</span>
+<span class="nc" id="L486">                set.add(object.getLiteralValue().toString());</span>
+<span class="nc bnc" id="L487" title="All 2 branches missed.">            } else if (object.isURI()) {</span>
+<span class="nc" id="L488">                set.add(object.getURI().toString());</span>
+            } else {
+<span class="nc" id="L490">                set.add(object.toString());</span>
+            }
+<span class="nc" id="L492">        }</span>
+<span class="nc" id="L493">        return set;</span>
+    }
+
+    protected Triple getTriple( final Node subject, final Property property ) {
+<span class="fc" id="L497">        final ExtendedIterator&lt;Triple&gt; it = graph.find( subject, property.asNode(), null );</span>
+        try {
+<span class="pc bpc" id="L499" title="1 of 2 branches missed.">            if ( it.hasNext() ) {</span>
+<span class="nc" id="L500">                return it.next();</span>
+            } else {
+<span class="fc" id="L502">                return null;</span>
+            }
+        } finally {
+<span class="pc" id="L505">            it.close();</span>
+        }
+    }
+
+    /**
+     * Gets the path to which properties of this resource may be accessed.
+     *
+     * @return string containing properties path
+     */
+    public String getPropertiesPath() {
+<span class="fc" id="L515">        return path;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.5.201505241946</span></div></body></html>
