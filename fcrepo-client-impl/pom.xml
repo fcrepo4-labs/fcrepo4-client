@@ -12,9 +12,9 @@
   <packaging>jar</packaging>
 
   <properties>
-    <jena.version>2.12.1</jena.version>
+    <jena.version>2.13.0</jena.version>
     <commons-io.version>2.4</commons-io.version>
-    <org.apache.commons.version>3.1</org.apache.commons.version>
+    <org.apache.commons.version>3.3.2</org.apache.commons.version>
   </properties>
 
   <dependencies>
