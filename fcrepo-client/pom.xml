@@ -12,7 +12,7 @@
   <packaging>bundle</packaging>
 
   <properties>
-    <jena.version>2.12.1</jena.version>
+    <jena.version>2.13.0</jena.version>
     <osgi.import.packages>
       *
     </osgi.import.packages>
