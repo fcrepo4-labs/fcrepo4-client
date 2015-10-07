@@ -24,6 +24,7 @@ import com.hp.hpl.jena.graph.Triple;
 /**
  * The primary client class for interacting with a Fedora repository.
  * @author escowles
+ * @author gushakov
  * @since 2014-08-01
 **/
 public interface FedoraRepository {
@@ -137,4 +138,20 @@ public interface FedoraRepository {
      * Check whether this repository is writable.
     **/
     public boolean isWritable();
+
+    /**
+     * Starts a new transaction, returns (prefixed) transaction ID.
+     */
+    public String startTransaction() throws FedoraException;
+
+    /**
+     * Commits any changes done in the course of the current transaction.
+     */
+    public void commitTransaction() throws FedoraException;
+
+    /**
+     * Rolls back any changes done in the course of the current transaction.
+     */
+    public void rollbackTransaction() throws FedoraException;
+
 }

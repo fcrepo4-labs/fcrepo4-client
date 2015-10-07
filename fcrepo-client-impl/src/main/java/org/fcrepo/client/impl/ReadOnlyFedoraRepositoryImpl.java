@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 public class ReadOnlyFedoraRepositoryImpl extends FedoraRepositoryImpl implements FedoraRepository {
     private static final Logger LOGGER = getLogger(ReadOnlyFedoraRepositoryImpl.class);
     private static final String msg = "Write operation attempted using read-only repository";
+    private static final String txMsg = "Transaction operation attempted using read-only repository";
 
     /**
      * Constructor that takes the repository url
@@ -128,5 +129,23 @@ public class ReadOnlyFedoraRepositoryImpl extends FedoraRepositoryImpl implement
     @Override
     public boolean isWritable() {
         return false;
+    }
+
+    @Override
+    public String startTransaction() throws FedoraException {
+        LOGGER.warn(txMsg);
+        throw new ReadOnlyException();
+    }
+
+    @Override
+    public void commitTransaction() throws FedoraException {
+        LOGGER.warn(txMsg);
+        throw new ReadOnlyException();
+    }
+
+    @Override
+    public void rollbackTransaction() throws FedoraException {
+        LOGGER.warn(txMsg);
+        throw new ReadOnlyException();
     }
 }

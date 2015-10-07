@@ -16,7 +16,6 @@
 package org.fcrepo.client.impl;
 
 import com.hp.hpl.jena.graph.Triple;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
@@ -43,6 +42,7 @@ import static org.apache.http.HttpStatus.SC_CONFLICT;
 import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -51,10 +51,18 @@ import static org.slf4j.LoggerFactory.getLogger;
  *
  * @author lsitu
  * @author escowles
+ * @author gushakov
  * @since 2014-08-11
  */
 public class FedoraRepositoryImpl implements FedoraRepository {
     private static final Logger LOGGER = getLogger(FedoraRepositoryImpl.class);
+
+    private static final ThreadLocal<String> TX_ID = new ThreadLocal<>();
+
+    private static final String TX = "tx:";
+    private static final String FCR_TX = "/fcr:tx";
+    private static final String FCR_COMMIT = "/fcr:commit";
+    private static final String FCR_ROLLBACK = "/fcr:rollback";
 
     protected HttpHelper httpHelper;
     protected String repositoryURL;
@@ -97,7 +105,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
 
     @Override
     public boolean exists(final String path) throws FedoraException, ForbiddenException {
-        final HttpHead head = httpHelper.createHeadMethod(path);
+        final HttpHead head = httpHelper.createHeadMethod(prependTransactionId(path));
         try {
             final HttpResponse response = httpHelper.execute(head);
             final StatusLine status = response.getStatusLine();
@@ -116,7 +124,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                                           status.getReasonPhrase());
             }
         } catch (final Exception e) {
-            LOGGER.error("could not encode URI parameter", e);
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             head.releaseConnection();
@@ -125,17 +133,19 @@ public class FedoraRepositoryImpl implements FedoraRepository {
 
     @Override
     public FedoraDatastream getDatastream(final String path) throws FedoraException {
-        return (FedoraDatastream)httpHelper.loadProperties(new FedoraDatastreamImpl(this, httpHelper, path));
+        return (FedoraDatastream) httpHelper
+                .loadProperties(new FedoraDatastreamImpl(this, httpHelper, prependTransactionId(path)));
     }
 
     @Override
     public FedoraObject getObject(final String path) throws FedoraException {
-        return (FedoraObject)httpHelper.loadProperties(new FedoraObjectImpl(this, httpHelper, path));
+        return (FedoraObject) httpHelper
+                .loadProperties(new FedoraObjectImpl(this, httpHelper, prependTransactionId(path)));
     }
 
     @Override
     public FedoraDatastream createDatastream(final String path, final FedoraContent content) throws FedoraException {
-        final HttpPut put = httpHelper.createContentPutMethod(path, null, content);
+        final HttpPut put = httpHelper.createContentPutMethod(prependTransactionId(path), null, content);
         try {
             final HttpResponse response = httpHelper.execute(put);
             final String uri = put.getURI().toString();
@@ -156,7 +166,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                                                   status.getReasonPhrase());
             }
         } catch (final Exception e) {
-            LOGGER.error("could not encode URI parameter", e);
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             put.releaseConnection();
@@ -166,7 +176,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
     @Override
     public FedoraDatastream createOrUpdateRedirectDatastream(final String path, final String url)
             throws FedoraException {
-        final HttpPut put = httpHelper.createContentPutMethod(path, null, null);
+        final HttpPut put = httpHelper.createContentPutMethod(prependTransactionId(path), null, null);
         try {
             put.setHeader("Content-Type", "message/external-body; access-type=URL; URL=\"" + url + "\"");
             final HttpResponse response = httpHelper.execute(put);
@@ -185,7 +195,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                         status.getReasonPhrase());
             }
         } catch (final Exception e) {
-            LOGGER.error("Error making or building PUT request.", e);
+            LOGGER.error("Error making or building PUT request: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             put.releaseConnection();
@@ -194,7 +204,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
 
     @Override
     public FedoraObject createObject(final String path) throws FedoraException {
-        final HttpPut put = httpHelper.createPutMethod(path, null);
+        final HttpPut put = httpHelper.createPutMethod(prependTransactionId(path), null);
         try {
             final HttpResponse response = httpHelper.execute(put);
             final String uri = put.getURI().toString();
@@ -215,7 +225,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                                                   status.getReasonPhrase());
             }
         } catch (final Exception e) {
-            LOGGER.error("could not encode URI parameter", e);
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             put.releaseConnection();
@@ -224,7 +234,9 @@ public class FedoraRepositoryImpl implements FedoraRepository {
 
     @Override
     public FedoraObject createResource(final String containerPath) throws FedoraException {
-        final HttpPost post = httpHelper.createPostMethod(containerPath == null ? "" : containerPath, null);
+        final HttpPost post = httpHelper
+                .createPostMethod(containerPath == null
+                        ? prependTransactionId("") : prependTransactionId(containerPath), null);
         try {
             final HttpResponse response = httpHelper.execute(post);
             final String uri = post.getURI().toString();
@@ -242,7 +254,7 @@ public class FedoraRepositoryImpl implements FedoraRepository {
                         status.getReasonPhrase());
             }
         } catch (final Exception e) {
-            LOGGER.error("could not encode URI parameter", e);
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             post.releaseConnection();
@@ -315,8 +327,117 @@ public class FedoraRepositoryImpl implements FedoraRepository {
     }
 
     @Override
+    public String startTransaction() throws FedoraException {
+        final HttpPost post = httpHelper.createPostMethod(FCR_TX, null);
+        try {
+
+            final HttpResponse response = httpHelper.execute(post);
+            final String uri = post.getURI().toString();
+            final StatusLine status = response.getStatusLine();
+            final int statusCode = status.getStatusCode();
+
+            if (statusCode == SC_CREATED) {
+                final String txId = response.getFirstHeader("Location").getValue().substring(repositoryURL.length());
+                TX_ID.set(txId);
+                LOGGER.debug("Started transaction {}", txId);
+                return txId;
+            } else if (statusCode == SC_FORBIDDEN) {
+                LOGGER.error("request to start new transaction {} is not authorized.", uri);
+                throw new ForbiddenException("request to start new transaction " + uri + " is not authorized.");
+            } else {
+                LOGGER.error("error start new transaction {}: {} {}", uri, statusCode, status.getReasonPhrase());
+                throw new FedoraException("error start new transaction " + uri + ": " + statusCode + " " +
+                        status.getReasonPhrase());
+            }
+
+        } catch (final Exception e) {
+            LOGGER.error("Could not encode URI parameter: ", e.getMessage());
+            throw new FedoraException(e);
+        } finally {
+            post.releaseConnection();
+        }
+
+    }
+
+    @Override
+    public void commitTransaction() throws FedoraException {
+        final HttpPost post = httpHelper.createPostMethod(TX_ID.get()
+                + FCR_TX + FCR_COMMIT, null);
+        try {
+            final HttpResponse response = httpHelper.execute(post);
+            final String uri = post.getURI().toString();
+            final StatusLine status = response.getStatusLine();
+            final int statusCode = status.getStatusCode();
+
+            if (statusCode == SC_FORBIDDEN) {
+                LOGGER.error("request to commit transaction {} is not authorized.", uri);
+                throw new ForbiddenException("request to commit transaction " + uri + " is not authorized.");
+            } else {
+                if (statusCode != SC_NO_CONTENT) {
+                    LOGGER.error("error committing back transaction {}: {} {}", uri,
+                            statusCode, status.getReasonPhrase());
+                    throw new FedoraException("error committing transaction " + uri + ": " + statusCode + " " +
+                            status.getReasonPhrase());
+                }
+            }
+            LOGGER.debug("Committed transaction {}", TX_ID.get());
+        } catch (final Exception e) {
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
+            throw new FedoraException(e);
+        } finally {
+            post.releaseConnection();
+            TX_ID.remove();
+        }
+    }
+
+    @Override
+    public void rollbackTransaction() throws FedoraException {
+        final HttpPost post = httpHelper.createPostMethod(TX_ID.get()
+                + FCR_TX + FCR_ROLLBACK, null);
+        try {
+            final HttpResponse response = httpHelper.execute(post);
+            final String uri = post.getURI().toString();
+            final StatusLine status = response.getStatusLine();
+            final int statusCode = status.getStatusCode();
+
+            if (statusCode == SC_FORBIDDEN) {
+                LOGGER.error("request to rollback transaction {} is not authorized.", uri);
+                throw new ForbiddenException("request to rollback transaction " + uri + " is not authorized.");
+            } else {
+                if (statusCode != SC_NO_CONTENT) {
+                    LOGGER.error("error rolling back transaction {}: {} {}", uri, statusCode, status.getReasonPhrase());
+                    throw new FedoraException("error rolling back transaction " + uri + ": " + statusCode + " " +
+                            status.getReasonPhrase());
+                }
+            }
+
+            LOGGER.debug("Rolled back transaction {}", TX_ID.get());
+        } catch (final Exception e) {
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
+            throw new FedoraException(e);
+        } finally {
+            post.releaseConnection();
+            TX_ID.remove();
+        }
+    }
+
+    @Override
     public String getRepositoryUrl() {
         return repositoryURL;
     }
 
+    private String prependTransactionId(final String path) {
+        final String txId = TX_ID.get();
+        // append (if needed) tx id to the path if a transaction has been started for this thread
+        if (txId == null || path.contains(TX)) {
+            return path;
+        } else {
+            // respect the slash (if present) in the original path
+            if (path.startsWith("/")) {
+                return "/" + txId + path;
+            } else {
+                return txId + "/" + path;
+            }
+        }
+    }
 }

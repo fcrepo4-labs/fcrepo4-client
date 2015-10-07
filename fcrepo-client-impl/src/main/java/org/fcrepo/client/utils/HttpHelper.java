@@ -385,7 +385,7 @@ public class HttpHelper {
             throw e;
         } catch (final Exception e) {
             e.printStackTrace();
-            LOGGER.info("could not encode URI parameter", e);
+            LOGGER.info("Could not encode URI parameter: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             get.releaseConnection();

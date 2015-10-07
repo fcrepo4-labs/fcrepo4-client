@@ -129,7 +129,7 @@ public class FedoraResourceImpl implements FedoraResource {
         } catch (final FedoraException e) {
             throw e;
         } catch (final Exception e) {
-            LOGGER.error("could not encode URI parameter", e);
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             copy.releaseConnection();
@@ -299,7 +299,7 @@ public class FedoraResourceImpl implements FedoraResource {
             oldPath = null;
             throw e;
         } catch (final Exception e) {
-            LOGGER.error("could not encode URI parameter", e);
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             move.releaseConnection();
@@ -345,7 +345,7 @@ public class FedoraResourceImpl implements FedoraResource {
         } catch (final FedoraException e) {
             throw e;
         } catch (final Exception e) {
-            LOGGER.error("could not encode URI parameter", e);
+            LOGGER.error("Could not encode URI parameter: {}", e.getMessage());
             throw new FedoraException(e);
         } finally {
             patch.releaseConnection();

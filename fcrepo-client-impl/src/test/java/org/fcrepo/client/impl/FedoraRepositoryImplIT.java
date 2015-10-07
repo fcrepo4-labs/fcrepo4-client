@@ -27,6 +27,7 @@ import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.FedoraResource;
 import org.fcrepo.client.NotFoundException;
 import org.fcrepo.kernel.api.RdfLexicon;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +40,9 @@ import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -55,7 +59,8 @@ public class FedoraRepositoryImplIT {
     private static String CARGO_PORT = System.getProperty("fcrepo.dynamic.test.port", "8080");
 
     private static String getFedoraBaseUrl() {
-        return "http://localhost:" + CARGO_PORT + "/" + FEDORA_CONTEXT;
+        // FEDORA_CONTEXT may be empty, do not add (extra) slash in this case
+        return "http://localhost:" + CARGO_PORT + (FEDORA_CONTEXT.equals("") ? "" : "/" + FEDORA_CONTEXT);
     }
 
     private FedoraRepository repo;
@@ -270,6 +275,83 @@ public class FedoraRepositoryImplIT {
         } catch (FedoraException e) {
             Assert.assertTrue(e.getClass() == NotFoundException.class);
         }
+    }
+
+    @Test
+    public void testStartTransactionAndRollback() throws FedoraException {
+        // start new transaction and check that transaction id is present
+        final String txId = repo.startTransaction();
+        Assert.assertNotNull(txId);
+        repo.rollbackTransaction();
+    }
+
+    @Test
+    public void testStartTransactionCreateObjectAndRollback() throws FedoraException {
+        final String txId = repo.startTransaction();
+        final String path = getRandomUniqueId();
+        repo.createObject(path);
+        final FedoraObject object = repo.getObject(path);
+        // path of resource created in transaction must start with tx id
+        Assert.assertThat(object.getPath(), CoreMatchers.startsWith(txId));
+        // rollback
+        repo.rollbackTransaction();
+        // resource should not be in the repository after rollback
+        Assert.assertFalse(repo.exists(path));
+    }
+
+    @Test
+    public void testStartTransactionCreateObjectAndCommit() throws FedoraException {
+        final String txId = repo.startTransaction();
+        final String path = getRandomUniqueId();
+        repo.createObject(path);
+        final FedoraObject object = repo.getObject(path);
+        // commit
+        repo.commitTransaction();
+        // resource should be in the repository after commit
+        Assert.assertTrue(repo.exists(path));
+    }
+
+    @Test
+    public void testMultiThreadedTransactions() throws Exception {
+        // based on code from http://stackoverflow.com/a/1250655
+        final ExecutorService threadPool = Executors.newFixedThreadPool(4);
+        for (int i = 0; i < 20; i++) {
+            threadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        repo.startTransaction();
+                        repo.createObject(getRandomUniqueId());
+                        repo.rollbackTransaction();
+                    } catch (FedoraException e) {
+                        throw new AssertionError(e);
+                    }
+                }
+            });
+        }
+        threadPool.shutdown();
+        threadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+    }
+
+    @Test
+    public void testStartTransactionCreateResourceWithNullContainerPathAndRollback() throws Exception {
+        repo.startTransaction();
+        repo.createResource(null);
+        repo.rollbackTransaction();
+    }
+
+    @Test
+    public void testStartTransactionCreateResourceWithNullContainerPathAndCommit() throws Exception {
+        repo.startTransaction();
+        repo.createResource(null);
+        repo.commitTransaction();
+    }
+
+    @Test
+    public void testStartTransactionCreateResourceWithEmptyContainerPathAndRollback() throws Exception {
+        repo.startTransaction();
+        repo.createResource("");
+        repo.rollbackTransaction();
     }
 
     private FedoraContent getStringTextContent(final String value) throws UnsupportedEncodingException {
