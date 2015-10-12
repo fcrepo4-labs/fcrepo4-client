@@ -36,6 +36,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.http.HttpHost;
+import org.apache.http.client.AuthCache;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.protocol.HttpContext;
 import org.fcrepo.client.BadRequestException;
 import org.fcrepo.client.ForbiddenException;
 import org.fcrepo.client.NotFoundException;
@@ -90,6 +96,7 @@ public class HttpHelper {
     private final String repositoryURL;
     private final HttpClient httpClient;
     private final boolean readOnly;
+    private final HttpContext httpContext;
 
     /**
      * Create an HTTP helper with a pre-configured HttpClient instance.
@@ -101,6 +108,20 @@ public class HttpHelper {
         this.repositoryURL = repositoryURL;
         this.httpClient = httpClient;
         this.readOnly = readOnly;
+
+        // Use pre-emptive Auth whether the repository is actually protected or not.
+        final URI uri = URI.create(repositoryURL);
+        final HttpHost target = new HttpHost(uri.getHost(), uri.getPort(), uri.getScheme());
+
+        final AuthCache authCache = new BasicAuthCache();
+        final BasicScheme basicAuth = new BasicScheme();
+        authCache.put(target, basicAuth);
+
+        // Add AuthCache to the execution context
+        final HttpClientContext localContext = HttpClientContext.create();
+        localContext.setAuthCache(authCache);
+
+        this.httpContext = localContext;
     }
 
     /**
@@ -113,9 +134,12 @@ public class HttpHelper {
     **/
     public HttpHelper(final String repositoryURL, final String fedoraUsername, final String fedoraPassword,
                       final boolean readOnly) {
-        this.repositoryURL = repositoryURL;
-        this.readOnly = readOnly;
+        this(repositoryURL, buildClient(fedoraUsername, fedoraPassword, repositoryURL), readOnly);
+    }
 
+    private static HttpClient buildClient(final String fedoraUsername,
+                                          final String fedoraPassword,
+                                          final String repositoryURL) {
         final PoolingClientConnectionManager connMann = new PoolingClientConnectionManager();
         connMann.setMaxTotal(MAX_VALUE);
         connMann.setDefaultMaxPerRoute(MAX_VALUE);
@@ -135,8 +159,7 @@ public class HttpHelper {
 
             httpClient.setCredentialsProvider(credsProvider);
         }
-
-        this.httpClient = httpClient;
+        return httpClient;
     }
 
     /**
@@ -157,7 +180,7 @@ public class HttpHelper {
             }
         }
 
-        return httpClient.execute(request);
+        return httpClient.execute(request, httpContext);
     }
 
     /**

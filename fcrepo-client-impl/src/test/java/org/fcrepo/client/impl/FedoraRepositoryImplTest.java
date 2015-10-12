@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 
+import org.apache.http.protocol.HttpContext;
 import org.fcrepo.client.NotFoundException;
 
 import com.hp.hpl.jena.graph.Graph;
@@ -108,7 +109,7 @@ public class FedoraRepositoryImplTest {
     @Test
     public void testGetObject() throws IOException, FedoraException {
         final String testId = "testGetObject";
-        when(mockClient.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
+        when(mockClient.execute(any(HttpUriRequest.class), any(HttpContext.class))).thenReturn(mockResponse);
         when(mockResponse.getEntity()).thenReturn(mockEntity);
         final Header mockContentType = mock(Header.class);
         when(mockEntity.getContentType()).thenReturn(mockContentType);
@@ -133,7 +134,7 @@ public class FedoraRepositoryImplTest {
     @Test
     public void testExists() throws IOException, FedoraException {
         final String testId = "testGetObject";
-        when(mockClient.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
+        when(mockClient.execute(any(HttpUriRequest.class), any(HttpContext.class))).thenReturn(mockResponse);
         when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
         when(mockStatusLine.getStatusCode()).thenReturn(SC_OK);
         assertTrue(fedoraRepository.exists(testId));
@@ -142,7 +143,7 @@ public class FedoraRepositoryImplTest {
     @Test
     public void testExistsNonExistent() throws IOException, FedoraException {
         final String testId = "testNonExistent";
-        when(mockClient.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
+        when(mockClient.execute(any(HttpUriRequest.class), any(HttpContext.class))).thenReturn(mockResponse);
         when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
         when(mockStatusLine.getStatusCode()).thenReturn(SC_NOT_FOUND);
         assertFalse(fedoraRepository.exists(testId));
@@ -154,7 +155,9 @@ public class FedoraRepositoryImplTest {
         final HttpResponse mockResponse2 = mock(HttpResponse.class);
         final StatusLine mockStatusLine2 = mock(StatusLine.class);
 
-        when(mockClient.execute(any(HttpUriRequest.class))).thenReturn(mockResponse2,mockResponse);
+        when(mockClient.execute(
+                any(HttpUriRequest.class),
+                any(HttpContext.class))).thenReturn(mockResponse2, mockResponse);
 
         // put
         when(mockResponse2.getStatusLine()).thenReturn(mockStatusLine2);
@@ -220,7 +223,7 @@ public class FedoraRepositoryImplTest {
         final Header typeHeader = mock(Header.class);
         final HttpEntity entity = mock(HttpEntity.class);
 
-        when(mockClient.execute(any(HttpUriRequest.class))).thenReturn(response);
+        when(mockClient.execute(any(HttpUriRequest.class), any(HttpContext.class))).thenReturn(response);
         when(response.getStatusLine()).thenReturn(status);
         when(status.getStatusCode()).thenReturn(200);
         when(response.getHeaders(eq("ETag"))).thenReturn(etagArray);

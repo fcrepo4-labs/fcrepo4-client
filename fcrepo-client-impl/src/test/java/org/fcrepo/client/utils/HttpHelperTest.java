@@ -44,6 +44,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.message.BasicHeader;
 
+import org.apache.http.protocol.HttpContext;
 import org.fcrepo.client.BadRequestException;
 import org.fcrepo.client.FedoraContent;
 import org.fcrepo.client.FedoraException;
@@ -94,21 +95,21 @@ public class HttpHelperTest {
     public void testExecuteGet() throws Exception {
         final HttpGet get = new HttpGet(repoURL);
         helper.execute(get);
-        verify(mockClient).execute(eq(get));
+        verify(mockClient).execute(eq(get), any(HttpContext.class));
     }
 
     @Test
     public void testExecutePut() throws Exception {
         final HttpPut put = new HttpPut(repoURL);
         helper.execute(put);
-        verify(mockClient).execute(eq(put));
+        verify(mockClient).execute(eq(put), any(HttpContext.class));
     }
 
     @Test
     public void testExecuteReadOnlyGet() throws Exception {
         final HttpGet get = new HttpGet(repoURL);
         readOnlyHelper.execute(get);
-        verify(mockClient).execute(eq(get));
+        verify(mockClient).execute(eq(get), any(HttpContext.class));
     }
 
     @Test (expected = ReadOnlyException.class)
@@ -237,7 +238,7 @@ public class HttpHelperTest {
         final Header[] etagHeaders = new Header[]{ etagHeader };
         final StatusLine mockStatus = mock(StatusLine.class);
 
-        when(mockClient.execute(any(HttpGet.class))).thenReturn(mockResponse);
+        when(mockClient.execute(any(HttpGet.class), any(HttpContext.class))).thenReturn(mockResponse);
         when(mockResponse.getEntity()).thenReturn(entity);
         when(mockResponse.getHeaders("ETag")).thenReturn(etagHeaders);
         when(mockResponse.getStatusLine()).thenReturn(mockStatus);
