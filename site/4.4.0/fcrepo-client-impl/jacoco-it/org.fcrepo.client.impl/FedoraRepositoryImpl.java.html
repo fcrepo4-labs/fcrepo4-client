@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>FedoraRepositoryImpl.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Fedora Repository Java Client API Impl</a> &gt; <a href="index.source.html" class="el_package">org.fcrepo.client.impl</a> &gt; <span class="el_source">FedoraRepositoryImpl.java</span></div><h1>FedoraRepositoryImpl.java</h1><pre class="source lang-java linenums">/**
+ * Copyright 2015 DuraSpace, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.fcrepo.client.impl;
+
+import com.hp.hpl.jena.graph.Triple;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.fcrepo.client.AlreadyExistsException;
+import org.fcrepo.client.FedoraContent;
+import org.fcrepo.client.FedoraDatastream;
+import org.fcrepo.client.FedoraException;
+import org.fcrepo.client.FedoraObject;
+import org.fcrepo.client.FedoraRepository;
+import org.fcrepo.client.ForbiddenException;
+import org.fcrepo.client.NotFoundException;
+import org.fcrepo.client.ReadOnlyException;
+import org.fcrepo.client.utils.HttpHelper;
+import org.slf4j.Logger;
+
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.Map;
+
+import static org.apache.http.HttpStatus.SC_CONFLICT;
+import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+import static org.apache.http.HttpStatus.SC_OK;
+import static org.slf4j.LoggerFactory.getLogger;
+
+/**
+ * FedoraRepositoryImpl manage httpclient instance to run requests
+ *
+ * @author lsitu
+ * @author escowles
+ * @since 2014-08-11
+ */
+public class FedoraRepositoryImpl implements FedoraRepository {
+<span class="fc" id="L57">    private static final Logger LOGGER = getLogger(FedoraRepositoryImpl.class);</span>
+
+    protected HttpHelper httpHelper;
+    protected String repositoryURL;
+
+<span class="nc" id="L62">    protected FedoraRepositoryImpl() {</span>
+        // for subclasses
+<span class="nc" id="L64">    }</span>
+
+    /**
+     * Constructor that takes the repository url
+     *
+     * @param repositoryURL Fedora base URL.
+     */
+    public FedoraRepositoryImpl(final String repositoryURL) {
+<span class="fc" id="L72">        this(repositoryURL, null, null);</span>
+<span class="fc" id="L73">    }</span>
+
+    /**
+     * Constructor
+     *
+     * @param repositoryURL Repository base URL
+     * @param username Repository username
+     * @param password Repository password
+     */
+<span class="fc" id="L82">    public FedoraRepositoryImpl(final String repositoryURL, final String username, final String password) {</span>
+<span class="fc" id="L83">        this.repositoryURL = repositoryURL;</span>
+<span class="fc" id="L84">        this.httpHelper = new HttpHelper(repositoryURL, username, password, false);</span>
+<span class="fc" id="L85">    }</span>
+
+    /**
+     * Constructor that takes the pre-configured HttpClient
+     *
+     * @param repositoryURL Repository baseURL
+     * @param httpClient Pre-configured httpClient
+     */
+<span class="nc" id="L93">    public FedoraRepositoryImpl(final String repositoryURL, final HttpClient httpClient) {</span>
+<span class="nc" id="L94">        this.repositoryURL = repositoryURL;</span>
+<span class="nc" id="L95">        this.httpHelper = new HttpHelper(repositoryURL, httpClient, false);</span>
+<span class="nc" id="L96">    }</span>
+
+    @Override
+    public boolean exists(final String path) throws FedoraException, ForbiddenException {
+<span class="fc" id="L100">        final HttpHead head = httpHelper.createHeadMethod(path);</span>
+        try {
+<span class="fc" id="L102">            final HttpResponse response = httpHelper.execute(head);</span>
+<span class="fc" id="L103">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L104">            final int statusCode = status.getStatusCode();</span>
+<span class="fc" id="L105">            final String uri = head.getURI().toString();</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">            if (statusCode == SC_OK) {</span>
+<span class="fc" id="L107">                return true;</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            } else if (statusCode == SC_NOT_FOUND) {</span>
+<span class="nc" id="L109">                return false;</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            } else if (statusCode == SC_FORBIDDEN) {</span>
+<span class="nc" id="L111">                LOGGER.error(&quot;request for resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L112">                throw new ForbiddenException(&quot;request for resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+            } else {
+<span class="nc" id="L114">                LOGGER.error(&quot;error checking resource {}: {} {}&quot;, uri, statusCode, status.getReasonPhrase());</span>
+<span class="nc" id="L115">                throw new FedoraException(&quot;error checking resource &quot; + uri + &quot;: &quot; + statusCode + &quot; &quot; +</span>
+<span class="nc" id="L116">                                          status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L118">        } catch (final Exception e) {</span>
+<span class="nc" id="L119">            LOGGER.error(&quot;could not encode URI parameter&quot;, e);</span>
+<span class="nc" id="L120">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L122">            head.releaseConnection();</span>
+        }
+    }
+
+    @Override
+    public FedoraDatastream getDatastream(final String path) throws FedoraException {
+<span class="fc" id="L128">        return (FedoraDatastream)httpHelper.loadProperties(new FedoraDatastreamImpl(this, httpHelper, path));</span>
+    }
+
+    @Override
+    public FedoraObject getObject(final String path) throws FedoraException {
+<span class="fc" id="L133">        return (FedoraObject)httpHelper.loadProperties(new FedoraObjectImpl(this, httpHelper, path));</span>
+    }
+
+    @Override
+    public FedoraDatastream createDatastream(final String path, final FedoraContent content) throws FedoraException {
+<span class="fc" id="L138">        final HttpPut put = httpHelper.createContentPutMethod(path, null, content);</span>
+        try {
+<span class="fc" id="L140">            final HttpResponse response = httpHelper.execute(put);</span>
+<span class="fc" id="L141">            final String uri = put.getURI().toString();</span>
+<span class="fc" id="L142">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L143">            final int statusCode = status.getStatusCode();</span>
+
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">            if (statusCode == SC_CREATED) {</span>
+<span class="fc" id="L146">                return getDatastream(path);</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">            } else if (statusCode == SC_FORBIDDEN) {</span>
+<span class="nc" id="L148">                LOGGER.error(&quot;request to create resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L149">                throw new ForbiddenException(&quot;request to create resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            } else if (statusCode == SC_CONFLICT) {</span>
+<span class="nc" id="L151">                LOGGER.error(&quot;resource {} already exists&quot;, uri);</span>
+<span class="nc" id="L152">                throw new AlreadyExistsException(&quot;resource &quot; + uri + &quot; already exists&quot;);</span>
+            } else {
+<span class="nc" id="L154">                LOGGER.error(&quot;error creating resource {}: {} {}&quot;, uri, statusCode, status.getReasonPhrase());</span>
+<span class="nc" id="L155">                throw new FedoraException(&quot;error retrieving resource &quot; + uri + &quot;: &quot; + statusCode + &quot; &quot; +</span>
+<span class="nc" id="L156">                                                  status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L158">        } catch (final Exception e) {</span>
+<span class="nc" id="L159">            LOGGER.error(&quot;could not encode URI parameter&quot;, e);</span>
+<span class="nc" id="L160">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L162">            put.releaseConnection();</span>
+        }
+    }
+
+    @Override
+    public FedoraDatastream createOrUpdateRedirectDatastream(final String path, final String url)
+            throws FedoraException {
+<span class="fc" id="L169">        final HttpPut put = httpHelper.createContentPutMethod(path, null, null);</span>
+        try {
+<span class="fc" id="L171">            put.setHeader(&quot;Content-Type&quot;, &quot;message/external-body; access-type=URL; URL=\&quot;&quot; + url + &quot;\&quot;&quot;);</span>
+<span class="fc" id="L172">            final HttpResponse response = httpHelper.execute(put);</span>
+<span class="fc" id="L173">            final String uri = put.getURI().toString();</span>
+<span class="fc" id="L174">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L175">            final int statusCode = status.getStatusCode();</span>
+
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">            if (statusCode == SC_CREATED) {</span>
+<span class="fc" id="L178">                return getDatastream(path);</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            } else if (statusCode == SC_FORBIDDEN) {</span>
+<span class="nc" id="L180">                LOGGER.error(&quot;request to create resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L181">                throw new ForbiddenException(&quot;request to create resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+            } else {
+<span class="nc" id="L183">                LOGGER.error(&quot;error creating resource {}: {} {}&quot;, uri, statusCode, status.getReasonPhrase());</span>
+<span class="nc" id="L184">                throw new FedoraException(&quot;error creating resource &quot; + uri + &quot;: &quot; + statusCode + &quot; &quot; +</span>
+<span class="nc" id="L185">                        status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L187">        } catch (final Exception e) {</span>
+<span class="nc" id="L188">            LOGGER.error(&quot;Error making or building PUT request.&quot;, e);</span>
+<span class="nc" id="L189">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L191">            put.releaseConnection();</span>
+        }
+    }
+
+    @Override
+    public FedoraObject createObject(final String path) throws FedoraException {
+<span class="fc" id="L197">        final HttpPut put = httpHelper.createPutMethod(path, null);</span>
+        try {
+<span class="fc" id="L199">            final HttpResponse response = httpHelper.execute(put);</span>
+<span class="fc" id="L200">            final String uri = put.getURI().toString();</span>
+<span class="fc" id="L201">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L202">            final int statusCode = status.getStatusCode();</span>
+
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">            if (statusCode == SC_CREATED) {</span>
+<span class="fc" id="L205">                return getObject(path);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">            } else if (statusCode == SC_FORBIDDEN) {</span>
+<span class="nc" id="L207">                LOGGER.error(&quot;request to create resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L208">                throw new ForbiddenException(&quot;request to create resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">            } else if (statusCode == SC_CONFLICT) {</span>
+<span class="nc" id="L210">                LOGGER.error(&quot;resource {} already exists&quot;, uri);</span>
+<span class="nc" id="L211">                throw new AlreadyExistsException(&quot;resource &quot; + uri + &quot; already exists&quot;);</span>
+            } else {
+<span class="nc" id="L213">                LOGGER.error(&quot;error creating resource {}: {} {}&quot;, uri, statusCode, status.getReasonPhrase());</span>
+<span class="nc" id="L214">                throw new FedoraException(&quot;error retrieving resource &quot; + uri + &quot;: &quot; + statusCode + &quot; &quot; +</span>
+<span class="nc" id="L215">                                                  status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L217">        } catch (final Exception e) {</span>
+<span class="nc" id="L218">            LOGGER.error(&quot;could not encode URI parameter&quot;, e);</span>
+<span class="nc" id="L219">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L221">            put.releaseConnection();</span>
+        }
+    }
+
+    @Override
+    public FedoraObject createResource(final String containerPath) throws FedoraException {
+<span class="fc bfc" id="L227" title="All 2 branches covered.">        final HttpPost post = httpHelper.createPostMethod(containerPath == null ? &quot;&quot; : containerPath, null);</span>
+        try {
+<span class="fc" id="L229">            final HttpResponse response = httpHelper.execute(post);</span>
+<span class="fc" id="L230">            final String uri = post.getURI().toString();</span>
+<span class="fc" id="L231">            final StatusLine status = response.getStatusLine();</span>
+<span class="fc" id="L232">            final int statusCode = status.getStatusCode();</span>
+
+<span class="pc bpc" id="L234" title="1 of 2 branches missed.">            if (statusCode == SC_CREATED) {</span>
+<span class="fc" id="L235">                return getObject(response.getFirstHeader(&quot;Location&quot;).getValue().substring(repositoryURL.length()));</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">            } else if (statusCode == SC_FORBIDDEN) {</span>
+<span class="nc" id="L237">                LOGGER.error(&quot;request to create resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L238">                throw new ForbiddenException(&quot;request to create resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+            } else {
+<span class="nc" id="L240">                LOGGER.error(&quot;error creating resource {}: {} {}&quot;, uri, statusCode, status.getReasonPhrase());</span>
+<span class="nc" id="L241">                throw new FedoraException(&quot;error creating resource &quot; + uri + &quot;: &quot; + statusCode + &quot; &quot; +</span>
+<span class="nc" id="L242">                        status.getReasonPhrase());</span>
+            }
+<span class="nc" id="L244">        } catch (final Exception e) {</span>
+<span class="nc" id="L245">            LOGGER.error(&quot;could not encode URI parameter&quot;, e);</span>
+<span class="nc" id="L246">            throw new FedoraException(e);</span>
+        } finally {
+<span class="pc" id="L248">            post.releaseConnection();</span>
+        }
+    }
+
+    @Override
+    public FedoraDatastream findOrCreateDatastream(final String path) throws FedoraException {
+        try {
+<span class="nc" id="L255">            return getDatastream(path);</span>
+<span class="nc" id="L256">        } catch ( NotFoundException ex ) {</span>
+<span class="nc" id="L257">            return createDatastream(path, null);</span>
+        }
+    }
+
+    @Override
+    public FedoraObject findOrCreateObject(final String path) throws FedoraException {
+        try {
+<span class="nc" id="L264">            return getObject(path);</span>
+<span class="nc" id="L265">        } catch ( NotFoundException ex ) {</span>
+<span class="nc" id="L266">            return createObject(path);</span>
+        }
+    }
+
+    @Override
+    public Iterator&lt;Triple&gt; getNodeTypes() {
+        // TODO Auto-generated method stub
+<span class="nc" id="L273">        return null;</span>
+    }
+
+    @Override
+    public void registerNodeTypes(final InputStream cndStream) throws ReadOnlyException {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L280">    }</span>
+
+    @Override
+    public Map&lt;String, String&gt; getRepositoryNamespaces() {
+        // TODO Auto-generated method stub
+<span class="nc" id="L285">        return null;</span>
+    }
+
+    @Override
+    public void addNamespace(final String prefix, final String uri) throws ReadOnlyException {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L292">    }</span>
+
+    @Override
+    public void removeNamespace(final String prefix) throws ReadOnlyException {
+        // TODO Auto-generated method stub
+
+<span class="nc" id="L298">    }</span>
+
+    @Override
+    public Long getRepositoryObjectCount() {
+        // TODO Auto-generated method stub
+<span class="nc" id="L303">        return null;</span>
+    }
+
+    @Override
+    public Long getRepositorySize() {
+        // TODO Auto-generated method stub
+<span class="nc" id="L309">        return null;</span>
+    }
+
+    @Override
+    public boolean isWritable() {
+<span class="nc" id="L314">        return true;</span>
+    }
+
+    @Override
+    public String getRepositoryUrl() {
+<span class="fc" id="L319">        return repositoryURL;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.5.201505241946</span></div></body></html>

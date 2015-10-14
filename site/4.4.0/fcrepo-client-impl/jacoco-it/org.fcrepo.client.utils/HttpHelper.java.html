@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>HttpHelper.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Fedora Repository Java Client API Impl</a> &gt; <a href="index.source.html" class="el_package">org.fcrepo.client.utils</a> &gt; <span class="el_source">HttpHelper.java</span></div><h1>HttpHelper.java</h1><pre class="source lang-java linenums">/**
+ * Copyright 2015 DuraSpace, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.fcrepo.client.utils;
+
+import static java.lang.Integer.MAX_VALUE;
+
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
+import static org.apache.http.HttpStatus.SC_FORBIDDEN;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
+import static org.apache.http.HttpStatus.SC_OK;
+
+import static org.apache.jena.riot.WebContent.contentTypeSPARQLUpdate;
+
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.slf4j.LoggerFactory.getLogger;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.fcrepo.client.BadRequestException;
+import org.fcrepo.client.ForbiddenException;
+import org.fcrepo.client.NotFoundException;
+
+import com.hp.hpl.jena.graph.Node;
+
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.client.StandardHttpRequestRetryHandler;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
+
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.RiotReader;
+import org.apache.jena.riot.lang.CollectorStreamTriples;
+
+import org.fcrepo.client.FedoraContent;
+import org.fcrepo.client.FedoraException;
+import org.fcrepo.client.FedoraObject;
+import org.fcrepo.client.ReadOnlyException;
+import org.fcrepo.client.impl.FedoraResourceImpl;
+
+import org.slf4j.Logger;
+
+
+/**
+ * HTTP utilities
+ * @author escowles
+ * @since 2014-08-26
+**/
+public class HttpHelper {
+<span class="fc" id="L88">    private static final Logger LOGGER = getLogger(HttpHelper.class);</span>
+
+    private final String repositoryURL;
+    private final HttpClient httpClient;
+    private final boolean readOnly;
+
+    /**
+     * Create an HTTP helper with a pre-configured HttpClient instance.
+     * @param repositoryURL Fedora base URL.
+     * @param httpClient Pre-configured HttpClient instance.
+     * @param readOnly If true, throw an exception when an update is attempted.
+    **/
+<span class="nc" id="L100">    public HttpHelper(final String repositoryURL, final HttpClient httpClient, final boolean readOnly) {</span>
+<span class="nc" id="L101">        this.repositoryURL = repositoryURL;</span>
+<span class="nc" id="L102">        this.httpClient = httpClient;</span>
+<span class="nc" id="L103">        this.readOnly = readOnly;</span>
+<span class="nc" id="L104">    }</span>
+
+    /**
+     * Create an HTTP helper for the specified repository.  If fedoraUsername and fedoraPassword are not null, then
+     * they will be used to connect to the repository.
+     * @param repositoryURL Fedora base URL.
+     * @param fedoraUsername Fedora username
+     * @param fedoraPassword Fedora password
+     * @param readOnly If true, throw an exception when an update is attempted.
+    **/
+    public HttpHelper(final String repositoryURL, final String fedoraUsername, final String fedoraPassword,
+<span class="fc" id="L115">                      final boolean readOnly) {</span>
+<span class="fc" id="L116">        this.repositoryURL = repositoryURL;</span>
+<span class="fc" id="L117">        this.readOnly = readOnly;</span>
+
+<span class="fc" id="L119">        final PoolingClientConnectionManager connMann = new PoolingClientConnectionManager();</span>
+<span class="fc" id="L120">        connMann.setMaxTotal(MAX_VALUE);</span>
+<span class="fc" id="L121">        connMann.setDefaultMaxPerRoute(MAX_VALUE);</span>
+
+<span class="fc" id="L123">        final DefaultHttpClient httpClient = new DefaultHttpClient(connMann);</span>
+<span class="fc" id="L124">        httpClient.setRedirectStrategy(new DefaultRedirectStrategy());</span>
+<span class="fc" id="L125">        httpClient.setHttpRequestRetryHandler(new StandardHttpRequestRetryHandler(0, false));</span>
+
+        // If the Fedora instance requires authentication, set it up here
+<span class="pc bpc" id="L128" title="3 of 4 branches missed.">        if (!isBlank(fedoraUsername) &amp;&amp; !isBlank(fedoraPassword)) {</span>
+<span class="nc" id="L129">            LOGGER.debug(&quot;Adding BASIC credentials to client for repo requests.&quot;);</span>
+
+<span class="nc" id="L131">            final URI fedoraUri = URI.create(repositoryURL);</span>
+<span class="nc" id="L132">            final CredentialsProvider credsProvider = new BasicCredentialsProvider();</span>
+<span class="nc" id="L133">            credsProvider.setCredentials(new AuthScope(fedoraUri.getHost(), fedoraUri.getPort()),</span>
+                                         new UsernamePasswordCredentials(fedoraUsername, fedoraPassword));
+
+<span class="nc" id="L136">            httpClient.setCredentialsProvider(credsProvider);</span>
+        }
+
+<span class="fc" id="L139">        this.httpClient = httpClient;</span>
+<span class="fc" id="L140">    }</span>
+
+    /**
+     * Execute a request for a subclass.
+     *
+     * @param request request to be executed
+     * @return response containing response to request
+     * @throws IOException
+     * @throws ReadOnlyException
+    **/
+    public HttpResponse execute( final HttpUriRequest request ) throws IOException, ReadOnlyException {
+<span class="pc bpc" id="L151" title="1 of 2 branches missed.">        if ( readOnly ) {</span>
+<span class="nc bnc" id="L152" title="All 21 branches missed.">            switch ( request.getMethod().toLowerCase() ) {</span>
+                case &quot;copy&quot;: case &quot;delete&quot;: case &quot;move&quot;: case &quot;patch&quot;: case &quot;post&quot;: case &quot;put&quot;:
+<span class="nc" id="L154">                    throw new ReadOnlyException();</span>
+                default:
+                    break;
+            }
+        }
+
+<span class="fc" id="L160">        return httpClient.execute(request);</span>
+    }
+
+    /**
+     * Encode URL parameters as a query string.
+     * @param params Query parameters
+    **/
+    private static String queryString( final Map&lt;String, List&lt;String&gt;&gt; params ) {
+<span class="fc" id="L168">        final StringBuilder builder = new StringBuilder();</span>
+<span class="pc bpc" id="L169" title="3 of 4 branches missed.">        if (params != null &amp;&amp; params.size() &gt; 0) {</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            for (final Iterator&lt;String&gt; it = params.keySet().iterator(); it.hasNext(); ) {</span>
+<span class="nc" id="L171">                final String key = it.next();</span>
+<span class="nc" id="L172">                final List&lt;String&gt; values = params.get(key);</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">                for (final String value : values) {</span>
+                    try {
+<span class="nc" id="L175">                        builder.append(key + &quot;=&quot; + URLEncoder.encode(value, &quot;UTF-8&quot;) + &quot;&amp;&quot;);</span>
+<span class="nc" id="L176">                    } catch (final UnsupportedEncodingException e) {</span>
+<span class="nc" id="L177">                        builder.append(key + &quot;=&quot; + value + &quot;&amp;&quot;);</span>
+<span class="nc" id="L178">                    }</span>
+<span class="nc" id="L179">                }</span>
+<span class="nc" id="L180">            }</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            return builder.length() &gt; 0 ? &quot;?&quot; + builder.substring(0, builder.length() - 1) : &quot;&quot;;</span>
+        }
+<span class="fc" id="L183">        return &quot;&quot;;</span>
+    }
+
+    /**
+     * Create HEAD method
+     * @param path Resource path, relative to repository baseURL
+     * @return HEAD method
+    **/
+    public HttpHead createHeadMethod(final String path) {
+<span class="fc" id="L192">        return new HttpHead(repositoryURL + path);</span>
+    }
+
+    /**
+     * Create GET method with list of parameters
+     * @param path Resource path, relative to repository baseURL
+     * @param params Query parameters
+     * @return GET method
+    **/
+    public HttpGet createGetMethod(final String path, final Map&lt;String, List&lt;String&gt;&gt; params) {
+<span class="fc" id="L202">        return new HttpGet(repositoryURL + path + queryString(params));</span>
+    }
+
+    /**
+     * Create DELETE method
+     * @param path Resource path, relative to repository baseURL
+     * @return DELETE method
+    **/
+    public HttpDelete createDeleteMethod(final String path) {
+<span class="fc" id="L211">        return new HttpDelete(repositoryURL + path);</span>
+    }
+
+    /**
+     * Create a request to update triples with SPARQL Update.
+     * @param path The datastream path.
+     * @param sparqlUpdate SPARQL Update command.
+     * @return created patch based on parameters
+     * @throws FedoraException
+    **/
+    public HttpPatch createPatchMethod(final String path, final String sparqlUpdate) throws FedoraException {
+<span class="pc bpc" id="L222" title="1 of 2 branches missed.">        if ( isBlank(sparqlUpdate) ) {</span>
+<span class="nc" id="L223">            throw new FedoraException(&quot;SPARQL Update command must not be blank&quot;);</span>
+        }
+
+<span class="fc" id="L226">        final HttpPatch patch = new HttpPatch(repositoryURL + path);</span>
+<span class="fc" id="L227">        patch.setEntity( new ByteArrayEntity(sparqlUpdate.getBytes()) );</span>
+<span class="fc" id="L228">        patch.setHeader(&quot;Content-Type&quot;, contentTypeSPARQLUpdate);</span>
+<span class="fc" id="L229">        return patch;</span>
+    }
+
+    /**
+     * Create POST method with list of parameters
+     * @param path Resource path, relative to repository baseURL
+     * @param params Query parameters
+     * @return PUT method
+    **/
+    public HttpPost createPostMethod(final String path, final Map&lt;String, List&lt;String&gt;&gt; params) {
+<span class="fc" id="L239">        return new HttpPost(repositoryURL + path + queryString(params));</span>
+    }
+
+    /**
+     * Create PUT method with list of parameters
+     * @param path Resource path, relative to repository baseURL
+     * @param params Query parameters
+     * @return PUT method
+    **/
+    public HttpPut createPutMethod(final String path, final Map&lt;String, List&lt;String&gt;&gt; params) {
+<span class="fc" id="L249">        return new HttpPut(repositoryURL + path + queryString(params));</span>
+    }
+
+    /**
+     * Create a request to create/update content.
+     * @param path The datastream path.
+     * @param params Mapping of parameters for the PUT request
+     * @param content Content parameters.
+     * @return PUT method
+    **/
+    public HttpPut createContentPutMethod(final String path, final Map&lt;String, List&lt;String&gt;&gt; params,
+                                          final FedoraContent content ) {
+<span class="fc" id="L261">        String contentPath = path;</span>
+<span class="pc bpc" id="L262" title="1 of 4 branches missed.">        if ( content != null &amp;&amp; content.getChecksum() != null ) {</span>
+<span class="nc" id="L263">            contentPath += &quot;?checksum=&quot; + content.getChecksum();</span>
+        }
+
+<span class="fc" id="L266">        final HttpPut put = createPutMethod( contentPath, params );</span>
+
+        // content stream
+<span class="fc bfc" id="L269" title="All 2 branches covered.">        if ( content != null ) {</span>
+<span class="fc" id="L270">            put.setEntity( new InputStreamEntity(content.getContent()) );</span>
+        }
+
+        // filename
+<span class="pc bpc" id="L274" title="1 of 4 branches missed.">        if ( content != null &amp;&amp; content.getFilename() != null ) {</span>
+<span class="nc" id="L275">            put.setHeader(&quot;Content-Disposition&quot;, &quot;attachment; filename=\&quot;&quot; + content.getFilename() + &quot;\&quot;&quot; );</span>
+        }
+
+        // content type
+<span class="pc bpc" id="L279" title="1 of 4 branches missed.">        if ( content != null &amp;&amp; content.getContentType() != null ) {</span>
+<span class="fc" id="L280">            put.setHeader(&quot;Content-Type&quot;, content.getContentType() );</span>
+        }
+
+<span class="fc" id="L283">        return put;</span>
+    }
+
+    /**
+     * Create a request to update triples.
+     * @param path The datastream path.
+     * @param updatedProperties InputStream containing RDF.
+     * @param contentType Content type of the RDF in updatedProperties (e.g., &quot;text/rdf+n3&quot; or
+     *        &quot;application/rdf+xml&quot;).
+     * @return PUT method
+     * @throws FedoraException
+    **/
+    public HttpPut createTriplesPutMethod(final String path, final InputStream updatedProperties,
+                                          final String contentType) throws FedoraException {
+<span class="nc bnc" id="L297" title="All 2 branches missed.">        if ( updatedProperties == null ) {</span>
+<span class="nc" id="L298">            throw new FedoraException(&quot;updatedProperties must not be null&quot;);</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">        } else if ( isBlank(contentType) ) {</span>
+<span class="nc" id="L300">            throw new FedoraException(&quot;contentType must not be blank&quot;);</span>
+        }
+
+<span class="nc" id="L303">        final HttpPut put = new HttpPut(repositoryURL + path);</span>
+<span class="nc" id="L304">        put.setEntity( new InputStreamEntity(updatedProperties) );</span>
+<span class="nc" id="L305">        put.setHeader(&quot;Content-Type&quot;, contentType);</span>
+<span class="nc" id="L306">        return put;</span>
+    }
+
+    /**
+     * Retrieve RDF from the repository and update the properties of a resource
+     * @param resource The resource to update
+     * @return the updated resource
+     * @throws FedoraException
+    **/
+    public FedoraResourceImpl loadProperties( final FedoraResourceImpl resource ) throws FedoraException {
+<span class="fc" id="L316">        final String path = resource.getPropertiesPath();</span>
+<span class="fc" id="L317">        final HttpGet get = createGetMethod(path, null);</span>
+<span class="fc bfc" id="L318" title="All 2 branches covered.">        if (resource instanceof FedoraObject) {</span>
+<span class="fc" id="L319">            get.addHeader(&quot;Prefer&quot;, &quot;return=representation; &quot;</span>
+                + &quot;include=\&quot;http://fedora.info/definitions/v4/repository#EmbedResources\&quot;&quot;);
+        }
+
+        try {
+<span class="fc" id="L324">            get.setHeader(&quot;accept&quot;, &quot;application/rdf+xml&quot;);</span>
+<span class="fc" id="L325">            final HttpResponse response = execute(get);</span>
+
+<span class="fc" id="L327">            final String uri = get.getURI().toString();</span>
+<span class="fc" id="L328">            final StatusLine status = response.getStatusLine();</span>
+
+<span class="fc bfc" id="L330" title="All 2 branches covered.">            if (status.getStatusCode() == SC_OK) {</span>
+<span class="fc" id="L331">                LOGGER.debug(&quot;Updated properties for resource {}&quot;, uri);</span>
+
+                // header processing
+<span class="fc" id="L334">                final Header[] etagHeader = response.getHeaders(&quot;ETag&quot;);</span>
+<span class="pc bpc" id="L335" title="2 of 4 branches missed.">                if (etagHeader != null &amp;&amp; etagHeader.length &gt; 0) {</span>
+<span class="fc" id="L336">                    resource.setEtagValue( etagHeader[0].getValue() );</span>
+                }
+
+                // StreamRdf
+<span class="fc" id="L340">                final HttpEntity entity = response.getEntity();</span>
+<span class="fc" id="L341">                final Lang lang = RDFLanguages.contentTypeToLang(entity.getContentType().getValue().split(&quot;:&quot;)[0]);</span>
+<span class="fc" id="L342">                final CollectorStreamTriples streamTriples = new CollectorStreamTriples();</span>
+<span class="fc" id="L343">                RiotReader.parse(entity.getContent(), lang, uri, streamTriples);</span>
+<span class="fc" id="L344">                resource.setGraph( RDFSinkFilter.filterTriples(streamTriples.getCollected().iterator(), Node.ANY) );</span>
+<span class="fc" id="L345">                return resource;</span>
+<span class="pc bpc" id="L346" title="1 of 2 branches missed.">            } else if (status.getStatusCode() == SC_FORBIDDEN) {</span>
+<span class="nc" id="L347">                LOGGER.info(&quot;request for resource {} is not authorized.&quot;, uri);</span>
+<span class="nc" id="L348">                throw new ForbiddenException(&quot;request for resource &quot; + uri + &quot; is not authorized.&quot;);</span>
+<span class="pc bpc" id="L349" title="1 of 2 branches missed.">            } else if (status.getStatusCode() == SC_BAD_REQUEST) {</span>
+<span class="nc" id="L350">                LOGGER.info(&quot;server does not support metadata type application/rdf+xml for resource {} &quot; +</span>
+                                     &quot; cannot retrieve&quot;, uri);
+<span class="nc" id="L352">                throw new BadRequestException(&quot;server does not support the request metadata type for resource &quot; + uri);</span>
+<span class="fc bfc" id="L353" title="All 2 branches covered.">            } else if (status.getStatusCode() == SC_NOT_FOUND) {</span>
+<span class="fc" id="L354">                LOGGER.info(&quot;resource {} does not exist, cannot retrieve&quot;, uri);</span>
+<span class="fc" id="L355">                throw new NotFoundException(&quot;resource &quot; + uri + &quot; does not exist, cannot retrieve&quot;);</span>
+            } else {
+<span class="fc" id="L357">                LOGGER.info(&quot;unexpected status code ({}) when retrieving resource {}&quot;, status.getStatusCode(), uri);</span>
+<span class="fc" id="L358">                throw new FedoraException(&quot;error retrieving resource &quot; + uri + &quot;: &quot; + status.getStatusCode() + &quot; &quot;</span>
+<span class="fc" id="L359">                                          + status.getReasonPhrase());</span>
+            }
+<span class="fc" id="L361">        } catch (final FedoraException e) {</span>
+<span class="fc" id="L362">            throw e;</span>
+<span class="nc" id="L363">        } catch (final Exception e) {</span>
+<span class="nc" id="L364">            e.printStackTrace();</span>
+<span class="nc" id="L365">            LOGGER.info(&quot;could not encode URI parameter&quot;, e);</span>
+<span class="nc" id="L366">            throw new FedoraException(e);</span>
+        } finally {
+<span class="fc" id="L368">            get.releaseConnection();</span>
+        }
+    }
+
+    /**
+     * Create COPY method
+     * @param sourcePath Source path, relative to repository baseURL
+     * @param destinationPath Destination path, relative to repository baseURL
+     * @return COPY method
+    **/
+    public HttpCopy createCopyMethod(final String sourcePath, final String destinationPath) {
+<span class="fc" id="L379">        return new HttpCopy(repositoryURL + sourcePath, repositoryURL + destinationPath);</span>
+    }
+
+    /**
+     * Create MOVE method
+     * @param sourcePath Source path, relative to repository baseURL
+     * @param destinationPath Destination path, relative to repository baseURL
+     * @return MOVE method
+    **/
+    public HttpMove createMoveMethod(final String sourcePath, final String destinationPath) {
+<span class="fc" id="L389">        return new HttpMove(repositoryURL + sourcePath, repositoryURL + destinationPath);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.5.201505241946</span></div></body></html>

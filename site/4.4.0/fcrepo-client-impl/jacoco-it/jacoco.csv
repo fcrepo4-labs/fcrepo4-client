@@ -1,0 +1,10 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+Fedora Repository Java Client API Impl,org.fcrepo.client.utils,HttpMove,0,20,0,0,0,7,0,3,0,3
+Fedora Repository Java Client API Impl,org.fcrepo.client.utils,RDFSinkFilter,5,89,3,7,0,22,2,7,0,4
+Fedora Repository Java Client API Impl,org.fcrepo.client.utils,HttpHelper,300,407,46,25,42,69,33,21,2,14
+Fedora Repository Java Client API Impl,org.fcrepo.client.utils,HttpCopy,0,20,0,0,0,7,0,3,0,3
+Fedora Repository Java Client API Impl,org.fcrepo.client.impl,ReadOnlyFedoraRepositoryImpl,109,0,0,0,32,0,12,0,12,0
+Fedora Repository Java Client API Impl,org.fcrepo.client.impl,FedoraObjectImpl,19,69,5,5,2,17,4,5,0,4
+Fedora Repository Java Client API Impl,org.fcrepo.client.impl,FedoraResourceImpl,1097,321,58,6,173,82,44,16,12,16
+Fedora Repository Java Client API Impl,org.fcrepo.client.impl,FedoraRepositoryImpl,480,235,21,7,73,51,25,12,12,11
+Fedora Repository Java Client API Impl,org.fcrepo.client.impl,FedoraDatastreamImpl,411,86,30,2,73,17,26,5,10,5
