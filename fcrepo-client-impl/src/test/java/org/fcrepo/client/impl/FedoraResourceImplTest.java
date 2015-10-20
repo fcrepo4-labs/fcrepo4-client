@@ -190,7 +190,7 @@ public class FedoraResourceImplTest {
         final HttpPost post = new HttpPost(repositoryURL);
         when(mockHelper.execute(any(HttpPost.class))).thenReturn(mockResponse);
         when(mockResponse.getStatusLine()).thenReturn(mockStatus);
-        when(mockStatus.getStatusCode()).thenReturn(204);
+        when(mockStatus.getStatusCode()).thenReturn(201);
         when(mockHelper.createPostMethod(anyString(), any(Map.class))).thenReturn(post);
         final String label = "examplelabel";
         resource.createVersionSnapshot(label);

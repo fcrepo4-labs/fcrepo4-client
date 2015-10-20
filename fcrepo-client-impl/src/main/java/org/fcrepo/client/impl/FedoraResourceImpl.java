@@ -16,6 +16,7 @@
 package org.fcrepo.client.impl;
 
 import static org.apache.http.HttpStatus.SC_CONFLICT;
+import static org.apache.http.HttpStatus.SC_CREATED;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_NO_CONTENT;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
@@ -412,7 +413,7 @@ public class FedoraResourceImpl implements FedoraResource {
             final StatusLine status = response.getStatusLine();
             final String uri = postVersion.getURI().toString();
 
-            if ( status.getStatusCode() == SC_NO_CONTENT) {
+            if ( status.getStatusCode() == SC_CREATED) {
                 LOGGER.debug("new version created for resource at {}", uri);
             } else if ( status.getStatusCode() == SC_CONFLICT) {
                 LOGGER.debug("The label {} is in use by another version.", label);
