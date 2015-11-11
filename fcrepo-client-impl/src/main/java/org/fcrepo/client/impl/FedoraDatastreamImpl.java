@@ -59,7 +59,7 @@ import org.fcrepo.client.FedoraObject;
 import org.fcrepo.client.FedoraRepository;
 import org.fcrepo.client.utils.HttpHelper;
 
-import org.fcrepo.kernel.api.FedoraJcrTypes;
+import org.fcrepo.kernel.api.FedoraTypes;
 import org.slf4j.Logger;
 
 /**
@@ -95,7 +95,7 @@ public class FedoraDatastreamImpl extends FedoraResourceImpl implements FedoraDa
 
     @Override
     public String getPropertiesPath() {
-        return path + "/" + FedoraJcrTypes.FCR_METADATA;
+        return path + "/" + FedoraTypes.FCR_METADATA;
     }
 
     @Override
